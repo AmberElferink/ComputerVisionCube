@@ -10,6 +10,8 @@ set(SOURCE_FILES
   src/IndexedMesh.h
   src/Pipeline.cpp
   src/Pipeline.h
+  src/RenderPass.cpp
+  src/RenderPass.h
   main.cpp
 )
 

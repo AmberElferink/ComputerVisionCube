@@ -1,10 +1,10 @@
 #include <cstdlib>
 #include <SDL.h>
-#include <glad/glad.h>
 #include <string_view>
 
 #include "IndexedMesh.h"
 #include "Pipeline.h"
+#include "RenderPass.h"
 #include "Renderer.h"
 
 // just copy a glsl file in here with the vertex shader
@@ -51,6 +51,14 @@ int main() {
     pipelineInfo.DebugName = "fullscreen blit";
     auto fullscreenPipeline = Pipeline::create(pipelineInfo);
 
+    RenderPass::CreateInfo passInfo;
+    passInfo.ClearColor[0] = 0.0f;
+    passInfo.ClearColor[1] = 0.0f;
+    passInfo.ClearColor[2] = 0.0f;
+    passInfo.ClearColor[3] = 1.0f;
+    passInfo.DebugName = "full screen quad";
+    auto fullscreenPass = RenderPass::create(passInfo);
+
     bool running = true;
     SDL_Event event;
 
@@ -74,9 +82,7 @@ int main() {
             }
         }
 
-        glClearColor(1.f, 1.f, 0.f, 0.f);
-        glClear(GL_COLOR_BUFFER_BIT);
-
+        fullscreenPass->bind();
         fullscreenPipeline->bind();
 
         // tell it you want to draw 2 triangles (2 vertices)
