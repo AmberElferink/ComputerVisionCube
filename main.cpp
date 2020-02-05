@@ -1,34 +1,10 @@
 #include <cstdlib>
 #include <SDL.h>
-#include <SDL_video.h> //basic opengl
 #include <glad/glad.h>
 #include <memory>
 #include <string_view>
 
-struct SDLDestroyer
-{
-    void operator()(SDL_GLContext context) const
-    {
-        SDL_GL_DeleteContext(context);
-    }
-    void operator()(SDL_Window* window) const
-    {
-        SDL_DestroyWindow(window);
-        SDL_Quit();
-    }
-};
-
-void GLAPIENTRY
-MessageCallback([[maybe_unused]] GLenum /*source*/, GLenum type, [[maybe_unused]] GLuint /*id*/, GLenum severity, [[maybe_unused]] GLsizei /*length*/, const GLchar* message, [[maybe_unused]] const void* /*userparam*/)
-{
-    fprintf(stderr,
-            "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
-            (type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""),
-            type,
-            severity,
-            message);
-    std::fflush(stderr);
-}
+#include "Renderer.h"
 
 //just copy a glsl file in here with the vertex shader
 constexpr std::string_view vertexShaderSource = "#version 460 core\n"
@@ -56,12 +32,6 @@ int main() {
     int screenWidth = 800;
     int screenHeight = 600;
 
-    SDL_Init(SDL_INIT_VIDEO);
-    std::unique_ptr<SDL_Window, SDLDestroyer> window; //keeps track of SDL_Window and destroys it when it seizes to exist
-    window.reset(SDL_CreateWindow("Calibration", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, screenWidth, screenHeight, SDL_WINDOW_OPENGL));
-    if(window == nullptr)
-        return EXIT_FAILURE;
-
     float quad_vertices[] = {
             0.f, 0.f, // 0 top left
             1.0, 0.f, // 1 top right
@@ -70,21 +40,10 @@ int main() {
     };
     static const uint16_t quad_indices[6] = {0, 1, 2, 2, 3, 0}; //drawing the quad
 
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);
-
-    std::unique_ptr<void, SDLDestroyer> context;
-    context.reset(SDL_GL_CreateContext(window.get()));
-    if(context == nullptr) {
-        return EXIT_FAILURE;
+    auto renderer = Renderer::create("Calibration", 800, 600);
+    if (!renderer) {
+      return EXIT_FAILURE;
     }
-
-    if( gladLoadGLLoader(SDL_GL_GetProcAddress) == 0) {
-        return EXIT_FAILURE;
-    }
-
-    glEnable(GL_DEBUG_OUTPUT);
-    glDebugMessageCallback(MessageCallback, nullptr);
 
     uint32_t quadVertexBuffer;
     glCreateBuffers(1, &quadVertexBuffer); //create buffer pointer on gpu
@@ -211,11 +170,7 @@ int main() {
         glBindVertexArray(vao);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, nullptr); //tell it you want to draw 2 triangles (2 vertices)
 
-
-        glFinish();
-        SDL_GL_SwapWindow(window.get()); //draw to the screen
-
-
+        renderer->swapBuffers();
     }
     glDeleteProgram(fullScreenBlit);
     glDeleteVertexArrays(1, &vao);
