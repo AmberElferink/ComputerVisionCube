@@ -6,6 +6,8 @@ set(CMAKE_CXX_STANDARD 20)
 set(SOURCE_FILES
   src/Renderer.cpp
   src/Renderer.h
+  src/IndexedMesh.cpp
+  src/IndexedMesh.h
   main.cpp
 )
 
