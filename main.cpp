@@ -35,7 +35,7 @@ int main() {
     uint32_t screenWidth = 800;
     uint32_t screenHeight = 600;
 
-    auto renderer = Renderer::create("Calibration", 800, 600);
+    auto renderer = Renderer::create("Calibration", screenWidth, screenHeight);
     if (!renderer) {
       return EXIT_FAILURE;
     }
