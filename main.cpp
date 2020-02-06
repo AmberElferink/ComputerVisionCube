@@ -1,7 +1,8 @@
-#include <SDL.h>
+#include <SDL2/SDL.h>
 #include <cstdlib>
 #include <opencv2/core/opengl.hpp>
 #include <opencv2/videoio.hpp>
+#include <opencv2/calib3d.hpp>
 #include <string_view>
 
 #include "IndexedMesh.h"
@@ -9,9 +10,12 @@
 #include "RenderPass.h"
 #include "Renderer.h"
 
+constexpr float oneSquareMm = 2.3f;
+const cv::Size patternSizeMm = cv::Size(7 * oneSquareMm,10 * oneSquareMm);
+
 // just copy a glsl file in here with the vertex shader
 constexpr std::string_view vertexShaderSource =
-    "#version 460 core\n"
+    "#version 450 core\n"
     "layout (location = 0) in vec2 screenCoordinate;\n"
     "layout (location = 0) out vec2 textureCoordinate;\n"
     "\n"
@@ -26,7 +30,7 @@ constexpr std::string_view vertexShaderSource =
 
 // fragment shader chooses color for each pixel in the frameBuffer
 constexpr std::string_view fragmentShaderSource =
-    "#version 460 core\n"
+    "#version 450 core\n"
     "layout (location = 0) in vec2 textureCoordinate;\n"
     "layout (location = 0) out vec4 color;\n"
     "uniform sampler2D ourTexture;\n"
@@ -53,6 +57,7 @@ int main(int argc, char* argv[]) {
 
     auto renderer = Renderer::create("Calibration", screenWidth, screenHeight);
     if (!renderer) {
+      std::fprintf(stderr, "Failed to initialize renderer\n");
       return EXIT_FAILURE;
     }
 
@@ -66,6 +71,10 @@ int main(int argc, char* argv[]) {
     pipelineInfo.FragmentShaderSource = fragmentShaderSource;
     pipelineInfo.DebugName = "fullscreen blit";
     auto fullscreenPipeline = Pipeline::create(pipelineInfo);
+    if (!renderer) {
+        std::fprintf(stderr, "Failed to create pipeline\n");
+        return EXIT_FAILURE;
+    }
 
     RenderPass::CreateInfo passInfo;
     passInfo.ClearColor[0] = 0.0f;
@@ -113,7 +122,11 @@ int main(int argc, char* argv[]) {
             std::fprintf(stderr,
                          "Camera returned an empty frame... Quitting.\n");
         } else {
-            interopFrame.copyFrom(frame);
+            std::vector<cv::Point2f> corners;
+            if (cv::findChessboardCorners(frame, patternSizeMm, corners)) {
+                std::printf("Chessboard detected\n");
+            }
+            interopFrame.copyFrom(frame, true);
         }
 
         fullscreenPass->bind();
