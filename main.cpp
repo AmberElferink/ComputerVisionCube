@@ -12,7 +12,7 @@
 #include "Renderer.h"
 
 constexpr float oneSquareMm = 2.3f;
-const cv::Size patternSizeMm = cv::Size(7 * oneSquareMm,10 * oneSquareMm);
+const cv::Size patternSizeMm = cv::Size(6, 9);
 
 // just copy a glsl file in here with the vertex shader
 constexpr std::string_view vertexShaderSource =
