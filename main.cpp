@@ -4,6 +4,7 @@
 #include <opencv2/videoio.hpp>
 #include <opencv2/calib3d.hpp>
 #include <string_view>
+#include <glad/glad.h>
 
 #include "IndexedMesh.h"
 #include "Pipeline.h"
@@ -36,7 +37,7 @@ constexpr std::string_view fragmentShaderSource =
     "uniform sampler2D ourTexture;\n"
     "void main()\n"
     "{\n"
-    "    color = texture(ourTexture, textureCoordinate);\n"
+    "    color = texture(ourTexture, textureCoordinate).bgra;\n"
     "}\n";
 
 int main(int argc, char* argv[]) {
@@ -84,13 +85,15 @@ int main(int argc, char* argv[]) {
     passInfo.DebugName = "full screen quad";
     auto fullscreenPass = RenderPass::create(passInfo);
 
-    // Make sure opencv has the same context and the renderer
-    if (cv::ocl::haveOpenCL()) {
-        (void)cv::ogl::ocl::initializeContextFromGL();
-    }
+    unsigned int texture;
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
     cv::Mat frame;
-    cv::ogl::Texture2D interopFrame;
 
     bool running = true;
     SDL_Event event;
@@ -126,11 +129,11 @@ int main(int argc, char* argv[]) {
             if (cv::findChessboardCorners(frame, patternSizeMm, corners)) {
                 std::printf("Chessboard detected\n");
             }
-            interopFrame.copyFrom(frame, true);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, screenWidth, screenHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, frame.data);
         }
 
         fullscreenPass->bind();
-        interopFrame.bind();
+        glBindTexture(GL_TEXTURE_2D, texture);
         fullscreenPipeline->bind();
 
         // tell it you want to draw 2 triangles (2 vertices)
