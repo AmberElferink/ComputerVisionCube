@@ -50,6 +50,29 @@ constexpr std::string_view fragmentShaderSource =
     "    color = texture(ourTexture, textureCoordinate).bgra;\n"
     "}\n";
 
+constexpr std::string_view axisVertexShaderSource =
+    "#version 450 core\n"
+    "layout (location = 0) in vec3 position;\n"
+    "layout (location = 1) in vec3 color;\n"
+    "layout (location = 0) out vec4 out_color;\n"
+    "uniform mat4 model;\n"
+    "uniform mat4 viewProj;\n"
+    "\n"
+    "void main()\n"
+    "{\n"
+    "    gl_Position = viewProj * model * vec4(position, 1.0);\n"
+    "    out_color = vec4(color, 1.0);\n"
+    "}\n";
+
+constexpr std::string_view axisFragmentShaderSource =
+    "#version 450 core\n"
+    "layout (location = 0) in vec4 in_color;\n"
+    "layout (location = 0) out vec4 out_color;\n"
+    "void main()\n"
+    "{\n"
+    "    out_color = in_color;\n"
+    "}\n";
+
 int main(int argc, char* argv[]) {
     // Select video source from command line argument 1 (an int)
     int videoSourceIndex = 0;
@@ -74,7 +97,7 @@ int main(int argc, char* argv[]) {
     std::printf("%zu GPU devices are detected.\n", context.ndevices());
     for (int i = 0; i < context.ndevices(); i++)
     {
-        cv::ocl::Device device = context.device(i);
+        const cv::ocl::Device& device = context.device(i);
         std::printf("name: %s\n"
                     "available: %s\n"
                     "imageSupport: %s\n"
@@ -103,17 +126,30 @@ int main(int argc, char* argv[]) {
     }
 
     auto fullscreenQuad = IndexedMesh::createFullscreenQuad("fullscreen quad");
+    auto axis = IndexedMesh::createAxis("axis");
 
-    // pipeline
-    Pipeline::CreateInfo pipelineInfo;
-    pipelineInfo.ViewportWidth = screenWidth;
-    pipelineInfo.ViewportHeight = screenHeight;
-    pipelineInfo.VertexShaderSource = vertexShaderSource;
-    pipelineInfo.FragmentShaderSource = fragmentShaderSource;
-    pipelineInfo.DebugName = "fullscreen blit";
-    auto fullscreenPipeline = Pipeline::create(pipelineInfo);
-    if (!renderer) {
-        std::fprintf(stderr, "Failed to create pipeline\n");
+    // pipelines
+    Pipeline::CreateInfo fullScreenPipelineInfo;
+    fullScreenPipelineInfo.ViewportWidth = screenWidth;
+    fullScreenPipelineInfo.ViewportHeight = screenHeight;
+    fullScreenPipelineInfo.VertexShaderSource = vertexShaderSource;
+    fullScreenPipelineInfo.FragmentShaderSource = fragmentShaderSource;
+    fullScreenPipelineInfo.DebugName = "fullscreen blit";
+    auto fullscreenPipeline = Pipeline::create(fullScreenPipelineInfo);
+    if (!fullscreenPipeline) {
+        std::fprintf(stderr, "Failed to create fullscreen pipeline\n");
+        return EXIT_FAILURE;
+    }
+
+    Pipeline::CreateInfo axisPipelineInfo;
+    axisPipelineInfo.ViewportWidth = screenWidth;
+    axisPipelineInfo.ViewportHeight = screenHeight;
+    axisPipelineInfo.VertexShaderSource = axisVertexShaderSource;
+    axisPipelineInfo.FragmentShaderSource = axisFragmentShaderSource;
+    axisPipelineInfo.DebugName = "axis";
+    auto axisPipeline = Pipeline::create(axisPipelineInfo);
+    if (!axisPipeline) {
+        std::fprintf(stderr, "Failed to create axis pipeline\n");
         return EXIT_FAILURE;
     }
 
@@ -207,6 +243,27 @@ int main(int argc, char* argv[]) {
 
         // tell it you want to draw 2 triangles (2 vertices)
         fullscreenQuad->draw();
+
+        axisPipeline->bind();
+
+        // TODO(amber): Set these matrices from what we get from opencv
+        mat4 modelMatrix {
+            1, 0, 0, 0,
+            0, 1, 0, 0,
+            0, 0, 1, 0,
+            0, 0, 0, 1
+        };
+        mat4 viewProjMatrix {
+            1, 0, 0, 0,
+            0, 1, 0, 0,
+            0, 0, 1, 0,
+            0, 0, 0, 1
+        };
+
+
+        axisPipeline->setUniform("model", modelMatrix);
+        axisPipeline->setUniform("viewProj", viewProjMatrix);
+        axis->draw();
 
         renderer->DrawUi();
 
