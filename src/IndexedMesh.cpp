@@ -23,11 +23,32 @@ std::unique_ptr<IndexedMesh> IndexedMesh::create(const CreateInfo& info) {
     glCreateVertexArrays(1, &vao);
 
     glBindVertexArray(vao);
+    glBindBuffer(GL_ARRAY_BUFFER, buffers[0]);
     // binds buffers to the slot in the vao, and this makes no sense but is
     // needed somehow
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffers[1]);
 
-    uint32_t attr_index = 0;
+    uint32_t totalStride = 0;
+    for (uint32_t i = 0; i < info.AttributeCount; ++i) {
+        auto size = info.Attributes[i].Count;
+        switch (info.Attributes[i].Type) {
+        case GL_FLOAT:
+            size *= sizeof(float);
+            break;
+        default:
+            // printf("unsupported type\n");
+            assert(false);
+            return nullptr;
+        }
+        totalStride += size;
+    }
+
+    glVertexArrayVertexBuffer(vao, 0, buffers[0], 0, info.VertexBufferSize);
+    glNamedBufferData(buffers[0], info.VertexBufferSize, nullptr,
+                      GL_STATIC_DRAW);
+    glNamedBufferData(buffers[1], info.IndexBufferSize, nullptr,
+                      GL_STATIC_DRAW);
+
     uintptr_t attr_offset = 0;
     for (uint32_t i = 0; i < info.AttributeCount; ++i) {
         auto size = info.Attributes[i].Count;
@@ -40,22 +61,14 @@ std::unique_ptr<IndexedMesh> IndexedMesh::create(const CreateInfo& info) {
             assert(false);
             return nullptr;
         }
-        glEnableVertexAttribArray(attr_index);
         // tell the gpu (and RenderDoc) you use data of a specific type for the
         // vertices at a specific position in the shader
-        glVertexAttribPointer(attr_index, info.Attributes[i].Count,
-                              info.Attributes[i].Type, GL_FALSE, size,
+        glEnableVertexAttribArray(i);
+        glVertexAttribPointer(i, info.Attributes[i].Count,
+                              info.Attributes[i].Type, GL_FALSE, totalStride,
                               reinterpret_cast<const void*>(attr_offset));
-        attr_index++;
         attr_offset += size;
     }
-
-    glVertexArrayVertexBuffer(vao, 0, buffers[0], 0, attr_offset);
-
-    glNamedBufferData(buffers[0], info.VertexCount * info.VertexSize, nullptr,
-                      GL_STATIC_DRAW);
-    glNamedBufferData(buffers[1], info.IndexCount * info.IndexSize, nullptr,
-                      GL_STATIC_DRAW);
 
     if (info.DebugName.data()) {
         // to be able to read it in RenderDoc/errors
@@ -74,7 +87,7 @@ std::unique_ptr<IndexedMesh> IndexedMesh::create(const CreateInfo& info) {
     }
 
     return std::unique_ptr<IndexedMesh>(
-        new IndexedMesh(buffers[0], buffers[1], vao, info.IndexCount));
+        new IndexedMesh(buffers[0], buffers[1], vao, info.IndexBufferSize / sizeof(uint16_t)));
 }
 
 std::unique_ptr<IndexedMesh>
@@ -84,10 +97,8 @@ IndexedMesh::createFullscreenQuad(const std::string_view& debug_name) {
     CreateInfo info;
     info.Attributes = attributes.data();
     info.AttributeCount = attributes.size();
-    info.VertexSize = sizeof(quad_vertices[0]);
-    info.VertexCount = sizeof(quad_vertices) / sizeof(quad_vertices[0]);
-    info.IndexSize = sizeof(quad_indices[0]);
-    info.IndexCount = sizeof(quad_indices) / sizeof(quad_indices[0]);
+    info.VertexBufferSize = sizeof(quad_vertices);
+    info.IndexBufferSize = sizeof(quad_indices);
     info.DebugName = debug_name;
     auto fullscreen_quad = IndexedMesh::create(info);
 

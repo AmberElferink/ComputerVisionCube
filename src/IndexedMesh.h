@@ -15,10 +15,8 @@ class IndexedMesh {
     struct CreateInfo {
         const MeshAttributes* Attributes;
         uint32_t AttributeCount;
-        uint32_t VertexSize;
-        uint32_t VertexCount;
-        uint32_t IndexSize;
-        uint32_t IndexCount;
+        uint32_t VertexBufferSize;
+        uint32_t IndexBufferSize;
         std::string_view DebugName;
     };
     enum MemoryMapAccess {
