@@ -90,3 +90,16 @@ void Pipeline::bind() {
     glViewport(0, 0, viewportWidth_, viewportHeight_);
     glUseProgram(program_);
 }
+
+template <>
+bool Pipeline::setUniform(const std::string_view& uniform_name, const mat4& uniform)
+{
+    auto index = glGetUniformLocation(program_, uniform_name.data());
+    if (index == GL_INVALID_INDEX) {
+        std::fprintf(stderr, "Could not bind uniform %s: name not present\n", uniform_name.data());
+        return false;
+    }
+    glProgramUniformMatrix4fv(program_, index, 1, false, uniform);
+
+    return true;
+}

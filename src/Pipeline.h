@@ -5,6 +5,9 @@
 #include <memory>
 #include <string_view>
 
+// mat4 is equivalent to float[16]
+typedef float mat4[16];
+
 class Pipeline {
   public:
     struct CreateInfo {
@@ -18,6 +21,8 @@ class Pipeline {
     virtual ~Pipeline();
 
     void bind();
+    template <typename T>
+    bool setUniform(const std::string_view& uniform_name, const T& uniform);
 
     /// A factory function in the impl class allows for an error to return null
     static std::unique_ptr<Pipeline> create(const CreateInfo& info);
