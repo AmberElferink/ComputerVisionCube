@@ -1,5 +1,7 @@
 #include <vector>
 #include <opencv2/calib3d.hpp>
+//        cv::line(frame, corners[0], corners[1], cv::Scalar(255,0,0), 5);
+
 
 
 //python code adapted and translated: https://opencv-python-tutroals.readthedocs.io/en/latest/py_tutorials/py_calib3d/py_calibration/py_calibration.html
