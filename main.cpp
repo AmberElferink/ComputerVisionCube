@@ -19,7 +19,7 @@
 #include "Renderer.h"
 
 #define CALIBRATE_FROM_SAVED
-std::string calibImageFolder =  "subpath/calib";
+std::string calibImageFolder =  "calib";
 
 constexpr float oneSquareMm = 2.3f;
 const cv::Size patternSize = cv::Size(6, 9);
@@ -57,36 +57,36 @@ int main(int argc, char* argv[]) {
         videoSourceIndex = std::stoi(argv[1]);
     }
 
-	cv::ocl::setUseOpenCL(true);
-	if (!cv::ocl::haveOpenCL())
-	{
-		std::printf("OpenCL is not available...\n");
-		return EXIT_FAILURE;
-	}
+    cv::ocl::setUseOpenCL(true);
+    if (!cv::ocl::haveOpenCL())
+    {
+        std::printf("OpenCL is not available...\n");
+        return EXIT_FAILURE;
+    }
 
-	cv::ocl::Context context;
-	if (!context.create(cv::ocl::Device::TYPE_GPU))
-	{
-		std::printf("Failed creating the context...\n");
-		return EXIT_FAILURE;
-	}
+    cv::ocl::Context context;
+    if (!context.create(cv::ocl::Device::TYPE_GPU))
+    {
+        std::printf("Failed creating the context...\n");
+        return EXIT_FAILURE;
+    }
 
-	std::printf("%zu GPU devices are detected.\n", context.ndevices());
-	for (int i = 0; i < context.ndevices(); i++)
-	{
-		cv::ocl::Device device = context.device(i);
-		std::printf("name: %s\n"
-		            "available: %s\n"
-		            "imageSupport: %s\n"
-		            "OpenCL_C_Version: %s\n",
-		            device.name().c_str(),
-		            device.available() ? "true" : "false",
-		            device.imageSupport() ? "true" : "false",
-		            device.OpenCL_C_Version().c_str());
-	}
+    std::printf("%zu GPU devices are detected.\n", context.ndevices());
+    for (int i = 0; i < context.ndevices(); i++)
+    {
+        cv::ocl::Device device = context.device(i);
+        std::printf("name: %s\n"
+                    "available: %s\n"
+                    "imageSupport: %s\n"
+                    "OpenCL_C_Version: %s\n",
+                    device.name().c_str(),
+                    device.available() ? "true" : "false",
+                    device.imageSupport() ? "true" : "false",
+                    device.OpenCL_C_Version().c_str());
+    }
 
 
-	cv::VideoCapture videoSource;
+    cv::VideoCapture videoSource;
     if (!videoSource.open(videoSourceIndex)) {
         std::fprintf(stderr, "Could not open video source on index %d\n",
                      videoSourceIndex);
@@ -164,7 +164,7 @@ int main(int argc, char* argv[]) {
                     break;
                 case SDLK_r:
 #ifdef CALIBRATE_FROM_SAVED
-					calibration.LoadFromSaved(calibImageFolder);
+                    calibration.LoadFromSaved(calibImageFolder);
 #endif
                     calibration.CalcCameraMat(screenSize);
                     calibration.PrintResults();
