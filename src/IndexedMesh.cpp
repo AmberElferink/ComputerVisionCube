@@ -8,12 +8,33 @@
 namespace {
 
 constexpr float quad_vertices[] = {
-    0.f, 0.f, // 0 top left
-    1.0, 0.f, // 1 top right
-    1.f, 1.f, // 2 bottom right
-    0.f, 1.f, // 3 bottom left
+    // ,---------- u
+    // |     ,---- v
+    // |     |
+    0.0f, 0.0f, // 0 top left
+    1.00, 0.0f, // 1 top right
+    1.0f, 1.0f, // 2 bottom right
+    0.0f, 1.0f, // 3 bottom left
 };
 constexpr uint16_t quad_indices[] = {0, 1, 2, 2, 3, 0};
+
+constexpr float axis_vertices[] = {
+    // ,---------------------------------- x
+    // |     ,---------------------------- y
+    // |     |     ,---------------------- z
+    // |     |     |
+    // |     |     |     ,---------------- R
+    // |     |     |     |     ,---------- G
+    // |     |     |     |     |     ,---- B
+    // |     |     |     |     |     |
+    0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, // 0 center
+    1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, // 1 x axis
+    0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, // 2 center
+    0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, // 3 y axis
+    0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, // 4 center
+    0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, // 5 z axis
+};
+constexpr uint16_t axis_indices[] = {0, 1, 2, 3, 4, 5};
 } // namespace
 
 std::unique_ptr<IndexedMesh> IndexedMesh::create(const CreateInfo& info) {
@@ -109,6 +130,28 @@ IndexedMesh::createFullscreenQuad(const std::string_view& debug_name) {
                 quad_indices, sizeof(quad_indices));
 
     return fullscreen_quad;
+}
+
+std::unique_ptr<IndexedMesh> IndexedMesh::createAxis(const std::string_view &debug_name) {
+    const std::vector<IndexedMesh::MeshAttributes> attributes{
+        MeshAttributes{GL_FLOAT, 3}, // position
+        MeshAttributes{GL_FLOAT, 3}, // color
+    };
+    CreateInfo info;
+    info.Attributes = attributes.data();
+    info.AttributeCount = attributes.size();
+    info.VertexBufferSize = sizeof(axis_vertices);
+    info.IndexBufferSize = sizeof(axis_indices);
+    info.Topology = Topology::Lines;
+    info.DebugName = debug_name;
+    auto axis = IndexedMesh::create(info);
+
+    std::memcpy(axis->mapVertexBuffer(MemoryMapAccess::Write).get(),
+                axis_vertices, sizeof(axis_vertices));
+    std::memcpy(axis->mapIndexBuffer(MemoryMapAccess::Write).get(),
+                axis_indices, sizeof(axis_indices));
+
+    return axis;
 }
 
 IndexedMesh::IndexedMesh(uint32_t vertex_buffer, uint32_t index_buffer,

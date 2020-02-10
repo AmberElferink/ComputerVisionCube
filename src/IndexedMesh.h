@@ -49,6 +49,8 @@ class IndexedMesh {
     static std::unique_ptr<IndexedMesh> create(const CreateInfo& info);
     static std::unique_ptr<IndexedMesh>
     createFullscreenQuad(const std::string_view& debug_name);
+    static std::unique_ptr<IndexedMesh>
+    createAxis(const std::string_view& debug_name);
 
     virtual ~IndexedMesh();
     void draw() const;
