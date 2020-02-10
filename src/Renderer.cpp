@@ -3,6 +3,9 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_video.h> //basic opengl
 #include <glad/glad.h>
+#include <imgui.h>
+#include <examples/imgui_impl_sdl.h>
+#include <examples/imgui_impl_opengl3.h>
 
 void SDLDestroyer::operator()(SDL_GLContext context) const {
   SDL_GL_DeleteContext(context);
@@ -56,13 +59,39 @@ std::unique_ptr<Renderer> Renderer::create(const std::string_view &title,
   glEnable(GL_DEBUG_OUTPUT);
   glDebugMessageCallback(MessageCallback, nullptr);
 
+  IMGUI_CHECKVERSION();
+  ImGui::CreateContext();
+
+  // Setup Platform/Renderer bindings
+  ImGui_ImplSDL2_InitForOpenGL(window, nullptr);
+  ImGui_ImplOpenGL3_Init();
+
   return std::unique_ptr<Renderer>(new Renderer(window, context));
 }
 
 Renderer::Renderer(SDL_Window *window, SDL_GLContext context)
     : window_(window), context_(context) {}
 
-Renderer::~Renderer() { SDL_Quit(); }
+Renderer::~Renderer() {
+  ImGui::DestroyContext();
+  SDL_Quit();
+}
+
+void Renderer::ProcessEventsUi(const SDL_Event& event)
+{
+  ImGui_ImplSDL2_ProcessEvent(&event);
+}
+
+void Renderer::DrawUi() {
+  ImGui_ImplOpenGL3_NewFrame();
+  ImGui_ImplSDL2_NewFrame(window_.get());
+  ImGui::NewFrame();
+
+  ImGui::ShowDemoWindow();
+
+  ImGui::Render();
+  ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+}
 
 void Renderer::swapBuffers() {
   glFinish();
