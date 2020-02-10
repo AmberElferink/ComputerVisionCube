@@ -139,6 +139,8 @@ int main(int argc, char* argv[]) {
         // tell it you want to draw 2 triangles (2 vertices)
         fullscreenQuad->draw();
 
+        renderer->DrawUi();
+
         renderer->swapBuffers();
     }
     return EXIT_SUCCESS;

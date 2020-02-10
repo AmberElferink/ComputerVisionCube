@@ -32,7 +32,8 @@ endif()
 target_include_directories(INFOMCV_calibration PRIVATE src/ ${SDL2_INCLUDE_DIRS})
 
 add_subdirectory(thirdparty/glad)
+add_subdirectory(thirdparty/imgui-1.75)
 
-target_link_libraries(INFOMCV_calibration PRIVATE ${SDL2_LIBRARIES} glad ${OpenCV_LIBS})
+target_link_libraries(INFOMCV_calibration PRIVATE ${SDL2_LIBRARIES} glad imgui ${OpenCV_LIBS})
 
 target_compile_definitions(INFOMCV_calibration PRIVATE SDL_MAIN_HANDLED)
