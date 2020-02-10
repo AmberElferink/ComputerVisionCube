@@ -87,7 +87,7 @@ std::unique_ptr<IndexedMesh> IndexedMesh::create(const CreateInfo& info) {
     }
 
     return std::unique_ptr<IndexedMesh>(
-        new IndexedMesh(buffers[0], buffers[1], vao, info.IndexBufferSize / sizeof(uint16_t)));
+        new IndexedMesh(buffers[0], buffers[1], vao, info.IndexBufferSize / sizeof(uint16_t), info.Topology));
 }
 
 std::unique_ptr<IndexedMesh>
@@ -99,6 +99,7 @@ IndexedMesh::createFullscreenQuad(const std::string_view& debug_name) {
     info.AttributeCount = attributes.size();
     info.VertexBufferSize = sizeof(quad_vertices);
     info.IndexBufferSize = sizeof(quad_indices);
+    info.Topology = Topology::Triangles;
     info.DebugName = debug_name;
     auto fullscreen_quad = IndexedMesh::create(info);
 
@@ -111,10 +112,14 @@ IndexedMesh::createFullscreenQuad(const std::string_view& debug_name) {
 }
 
 IndexedMesh::IndexedMesh(uint32_t vertex_buffer, uint32_t index_buffer,
-                         uint32_t vao, uint16_t element_count)
+                         uint32_t vao, uint16_t element_count, Topology topology)
 
-    : vertexBuffer_(vertex_buffer), indexBuffer_(index_buffer), vao_(vao),
-      element_count(element_count) {}
+    : vertexBuffer_(vertex_buffer)
+    , indexBuffer_(index_buffer)
+    , vao_(vao)
+    , element_count(element_count)
+    , topology(topology)
+{}
 
 IndexedMesh::~IndexedMesh() {
     glDeleteBuffers(2, reinterpret_cast<uint32_t*>(this));
@@ -123,7 +128,7 @@ IndexedMesh::~IndexedMesh() {
 
 void IndexedMesh::draw() const {
     bind();
-    glDrawElements(GL_TRIANGLES, element_count, GL_UNSIGNED_SHORT, nullptr);
+    glDrawElements(topology, element_count, GL_UNSIGNED_SHORT, nullptr);
 }
 
 void IndexedMesh::bind() const { glBindVertexArray(vao_); }

@@ -8,6 +8,17 @@
 
 class IndexedMesh {
   public:
+    enum Topology
+    {
+       Points = 0x0000,
+       Lines = 0x0001,
+       Line_loop = 0x0002,
+       Line_strip = 0x0003,
+       Triangles = 0x0004,
+       Triangle_strip = 0x0005,
+       Triangle_fan = 0x0006,
+       Quads = 0x0007,
+    };
     struct MeshAttributes {
         uint32_t Type;
         uint32_t Count;
@@ -17,6 +28,7 @@ class IndexedMesh {
         uint32_t AttributeCount;
         uint32_t VertexBufferSize;
         uint32_t IndexBufferSize;
+        Topology Topology;
         std::string_view DebugName;
     };
     enum MemoryMapAccess {
@@ -31,6 +43,7 @@ class IndexedMesh {
     const uint32_t indexBuffer_;
     const uint32_t vao_;
     const uint16_t element_count;
+    const Topology topology;
 
     /// Only accepts uint16_t indices
     static std::unique_ptr<IndexedMesh> create(const CreateInfo& info);
@@ -48,5 +61,5 @@ class IndexedMesh {
 
   private:
     IndexedMesh(uint32_t vertex_buffer, uint32_t index_buffer, uint32_t vao,
-                uint16_t element_count);
+                uint16_t element_count, Topology topology);
 };
