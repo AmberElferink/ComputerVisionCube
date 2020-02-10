@@ -1,18 +1,28 @@
 #include <SDL2/SDL.h>
 #include <cstdlib>
-#include <opencv2/core/opengl.hpp>
-#include <opencv2/videoio.hpp>
-#include <opencv2/calib3d.hpp>
-#include <string_view>
 #include <glad/glad.h>
+#include <iostream>
+#include <opencv2/calib3d.hpp>
+#include <opencv2/core/opengl.hpp>
 
+#include <opencv2/videoio.hpp>
+#include <string_view>
+
+#include <opencv2/highgui.hpp> // saving images
+#include <opencv2/imgproc.hpp> //for drawing lines
+
+
+#include "Calibration.h"
 #include "IndexedMesh.h"
 #include "Pipeline.h"
 #include "RenderPass.h"
 #include "Renderer.h"
 
+#define CALIBRATE_FROM_SAVED
+std::string calibImageFolder =  "C:/Users/eempi/CLionProjects/INFOMCV_calibration/calibImages/calib";
+
 constexpr float oneSquareMm = 2.3f;
-const cv::Size patternSizeMm = cv::Size(6, 9);
+const cv::Size patternSize = cv::Size(6, 9);
 
 // just copy a glsl file in here with the vertex shader
 constexpr std::string_view vertexShaderSource =
@@ -55,16 +65,17 @@ int main(int argc, char* argv[]) {
     }
     uint32_t screenWidth = videoSource.get(cv::CAP_PROP_FRAME_WIDTH);
     uint32_t screenHeight = videoSource.get(cv::CAP_PROP_FRAME_HEIGHT);
+    cv::Size screenSize = cv::Size(screenWidth, screenHeight);
 
     auto renderer = Renderer::create("Calibration", screenWidth, screenHeight);
     if (!renderer) {
-      std::fprintf(stderr, "Failed to initialize renderer\n");
-      return EXIT_FAILURE;
+        std::fprintf(stderr, "Failed to initialize renderer\n");
+        return EXIT_FAILURE;
     }
 
     auto fullscreenQuad = IndexedMesh::createFullscreenQuad("fullscreen quad");
 
-    //pipeline
+    // pipeline
     Pipeline::CreateInfo pipelineInfo;
     pipelineInfo.ViewportWidth = screenWidth;
     pipelineInfo.ViewportHeight = screenHeight;
@@ -96,25 +107,45 @@ int main(int argc, char* argv[]) {
     cv::Mat frame;
 
     bool running = true;
+    bool calibrateFrame = false;
     SDL_Event event;
 
-    while(running)
-    {
-        //input
-        while(SDL_PollEvent(&event))
-        {
-            switch(event.type)
-            {
-                case SDL_QUIT: //cross
+    Calibration calibration(6, 9, 23);
+    int calibFileCounter = 0;
+
+    bool saveNextImage = false;
+    std::string calibFileName;
+
+
+    while (running) {
+        calibrateFrame = false;
+        // input
+        while (SDL_PollEvent(&event)) {
+            switch (event.type) {
+            case SDL_QUIT: // cross
+                running = false;
+                break;
+            case SDL_KEYDOWN:
+                switch (event.key.keysym.sym) {
+                case SDLK_ESCAPE:
                     running = false;
                     break;
-                case SDL_KEYDOWN:
-                    switch(event.key.keysym.sym)
-                    {
-                        case SDLK_ESCAPE:
-                            running = false;
-                            break;
-                    }
+                case SDLK_c:
+                    calibrateFrame = true;
+                    break;
+                case SDLK_r:
+#ifdef CALIBRATE_FROM_SAVED
+					calibration.LoadFromSaved(calibImageFolder);
+#endif
+                    calibration.CalcCameraMat(screenSize);
+                    calibration.PrintResults();
+                    break;
+                case SDLK_s:
+                    calibFileName = calibImageFolder + std::to_string(calibFileCounter) + ".png";
+                    calibFileCounter++;
+                    saveNextImage = true;
+                    break;
+                }
             }
         }
 
@@ -125,11 +156,20 @@ int main(int argc, char* argv[]) {
             std::fprintf(stderr,
                          "Camera returned an empty frame... Quitting.\n");
         } else {
-            std::vector<cv::Point2f> corners;
-            if (cv::findChessboardCorners(frame, patternSizeMm, corners)) {
-                std::printf("Chessboard detected\n");
-            }
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, screenWidth, screenHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, frame.data);
+
+			if (saveNextImage)
+			{
+                cv::imwrite(calibFileName, frame);
+                saveNextImage = false;
+                std::cout << "image saved\n";
+			}
+                
+            calibration.DetectPattern(frame, calibrateFrame, true); //write calibration colors to image
+
+
+
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, screenWidth, screenHeight, 0,
+                         GL_RGB, GL_UNSIGNED_BYTE, frame.data);
         }
 
         fullscreenPass->bind();
