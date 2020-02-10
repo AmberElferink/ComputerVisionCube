@@ -109,7 +109,7 @@ void Renderer::DrawUi() {
             printf("%s\n", fileDialog.selected_fn.c_str());
         }
 
-        ImGui::EndMenuBar();
+        ImGui::EndMainMenuBar();
     }
 
 
