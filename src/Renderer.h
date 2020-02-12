@@ -5,7 +5,6 @@
 
 typedef void *SDL_GLContext;
 struct SDL_Window;
-union SDL_Event;
 
 struct SDLDestroyer {
   void operator()(SDL_GLContext context) const;
@@ -20,12 +19,11 @@ public:
 
   virtual ~Renderer();
 
-  virtual void DrawUi();
-  virtual void ProcessEventsUi(const SDL_Event& event);
-
   /// Swap the backbuffer to screen so draw to the screen is done on new
   /// backbuffer
   void swapBuffers();
+
+  SDL_Window* getNativeWindowHandle() const;
 
 private:
   Renderer(SDL_Window *window, SDL_GLContext context);

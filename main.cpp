@@ -10,7 +10,7 @@
 
 #include <opencv2/highgui.hpp> // saving images
 #include <opencv2/imgproc.hpp> //for drawing lines
-
+#include <Ui.h>
 
 #include "Calibration.h"
 #include "IndexedMesh.h"
@@ -124,6 +124,11 @@ int main(int argc, char* argv[]) {
         std::fprintf(stderr, "Failed to initialize renderer\n");
         return EXIT_FAILURE;
     }
+    auto ui = Ui::create(renderer->getNativeWindowHandle());
+    if (!renderer) {
+        std::fprintf(stderr, "Failed to initialize renderer\n");
+        return EXIT_FAILURE;
+    }
 
     auto fullscreenQuad = IndexedMesh::createFullscreenQuad("fullscreen quad");
     auto axis = IndexedMesh::createAxis("axis");
@@ -194,6 +199,7 @@ int main(int argc, char* argv[]) {
         calibrateFrame = false;
         // input
         while (SDL_PollEvent(&event)) {
+            ui->processEvent(event);
             switch (event.type) {
             case SDL_QUIT: // cross
                 running = false;
@@ -212,7 +218,7 @@ int main(int argc, char* argv[]) {
                         calibration.LoadFromSaved(calibImageFolder);
 #endif
                     calibration.CalcCameraMat(screenSize, cameraMat);
-                    
+
                     calibration.PrintResults();
                     break;
                 case SDLK_s:
@@ -276,10 +282,7 @@ int main(int argc, char* argv[]) {
             axis->draw();
         }
 
-
-
-        renderer->DrawUi();
-
+        ui->draw(renderer->getNativeWindowHandle());
         renderer->swapBuffers();
     }
     return EXIT_SUCCESS;

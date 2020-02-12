@@ -1,12 +1,8 @@
 #include "Renderer.h"
-#include "../thirdparty/imgui-filebrowser/ImGuiFileBrowser.h"
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_video.h> //basic opengl
 #include <glad/glad.h>
-#include <imgui.h>
-#include <examples/imgui_impl_sdl.h>
-#include <examples/imgui_impl_opengl3.h>
 
 void SDLDestroyer::operator()(SDL_GLContext context) const {
     SDL_GL_DeleteContext(context);
@@ -60,13 +56,6 @@ std::unique_ptr<Renderer> Renderer::create(const std::string_view &title,
     glEnable(GL_DEBUG_OUTPUT);
     glDebugMessageCallback(MessageCallback, nullptr);
 
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-
-    // Setup Platform/Renderer bindings
-    ImGui_ImplSDL2_InitForOpenGL(window, nullptr);
-    ImGui_ImplOpenGL3_Init();
-
     return std::unique_ptr<Renderer>(new Renderer(window, context));
 }
 
@@ -74,50 +63,14 @@ Renderer::Renderer(SDL_Window *window, SDL_GLContext context)
     : window_(window), context_(context) {}
 
 Renderer::~Renderer() {
-    ImGui::DestroyContext();
     SDL_Quit();
-}
-
-void Renderer::ProcessEventsUi(const SDL_Event& event) {
-    ImGui_ImplSDL2_ProcessEvent(&event);
-}
-
-void Renderer::DrawUi() {
-    ImGui_ImplOpenGL3_NewFrame();
-    ImGui_ImplSDL2_NewFrame(window_.get());
-    ImGui::NewFrame();
-
-    static bool show_save_dialog = false;
-    static imgui_addons::ImGuiFileBrowser fileDialog;
-
-    if (ImGui::BeginMainMenuBar()) {
-        if (ImGui::BeginMenu("File")) {
-            if (ImGui::MenuItem("Save Calibration Files Path")) {
-                show_save_dialog = true;
-            }
-            ImGui::EndMenu();
-        }
-
-
-        if (show_save_dialog) {
-            ImGui::OpenPopup("Save Calibration Files");
-            show_save_dialog = false;
-        }
-
-        if (fileDialog.showSaveFileDialog("Save Calibration Files", ImVec2(600, 300), ".png"))
-        {
-            printf("%s\n", fileDialog.selected_fn.c_str());
-        }
-
-        ImGui::EndMainMenuBar();
-    }
-
-
-    ImGui::Render();
-    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
 void Renderer::swapBuffers() {
     glFinish();
     SDL_GL_SwapWindow(window_.get());
+}
+
+SDL_Window *Renderer::getNativeWindowHandle() const {
+    return window_.get();
 }
