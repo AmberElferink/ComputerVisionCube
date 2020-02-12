@@ -1,11 +1,13 @@
 #include <vector>
+#include <iostream>
 #include <opencv2/calib3d.hpp>
+#include <opencv2/imgcodecs.hpp>
 
 // mat4 is equivalent to float[16]
 typedef float mat4[16];
 
 //copies Mat4 from opencv to opengl (float[16]) mat
-void fromCVMatToGLMat(cv::Mat cvMat, mat4& glMat)
+static void fromCVMatToGLMat(cv::Mat cvMat, mat4& glMat)
 {
     //convert mat to correct type (float 1 channel)
     if (cvMat.type() != CV_32FC1) {
@@ -53,6 +55,8 @@ class Calibration
     cv::Mat translation_vectors;
     cv::Mat rotation_vectors;
 
+    mat4 cameraMat;
+
     bool cameraMatKnown = false;
 
 private:
@@ -68,7 +72,7 @@ private:
 public:
     //calibration with checkboard pattern. PatternWidth and height are the inner corners (squares - 1)
     Calibration(const int patternWidth, const int patternHeight, const int mmSideSquare)
-	{
+    {
         cameraMatrix = cv::Mat::eye(3, 3, CV_64F);
         //cameraMatrix.at<double>(0,0) = 1.0; //if using fixed aspec ratio (cpp code link)
         dist_coeffs = cv::Mat::zeros(8, 1, CV_64F);
@@ -76,21 +80,21 @@ public:
         patternSize = cv::Size(patternWidth, patternHeight);
         int cornerNr = patternSize.width * patternSize.height;
         objp.resize(cornerNr);
-	
+
         objectPoints.reserve(10 * objp.size());
         imgPoints.reserve(10 * cornerNr);
 
-		for (int i = 0; i < patternSize.width; i++) 
-		{
-			for (int j = 0; j < patternSize.height; j++) 
-			{ 
-				// real world coordinates in mm of the inner corners if Z = 0 (so only x and y coordinates).
+        for (int i = 0; i < patternSize.width; i++)
+        {
+            for (int j = 0; j < patternSize.height; j++)
+            {
+                // real world coordinates in mm of the inner corners if Z = 0 (so only x and y coordinates).
                 objp[i + j * patternSize.width] = cv::Vec3f(i * mmSideSquare, j * mmSideSquare, 0);
             }
         }
-	}
+    }
 
-	void LoadFromSaved(std::string path)
+    void LoadFromSaved(std::string path)
     {
 
         int calibFileCounter = 0;
@@ -106,10 +110,10 @@ public:
         }
     }
 
-	void DetectPattern(cv::Mat& frame, const bool addImage, const bool drawCalibrationColors = true)
+    void DetectPattern(cv::Mat& frame, const bool addImage, const bool drawCalibrationColors = true)
     {
         std::vector<cv::Point2f> corners;
-        bool chessBoardDetected = cv::findChessboardCorners(frame, patternSize, corners);
+        bool chessBoardDetected = cv::findChessboardCorners(frame, patternSize, corners, cv::CALIB_CB_ADAPTIVE_THRESH + cv::CALIB_CB_NORMALIZE_IMAGE + cv::CALIB_CB_FAST_CHECK);
 
         if (chessBoardDetected && addImage)
         {
@@ -119,7 +123,7 @@ public:
             printf("calibration image added\n");
         }
         if (drawCalibrationColors)
-			cv::drawChessboardCorners(frame, patternSize, corners, chessBoardDetected);
+            cv::drawChessboardCorners(frame, patternSize, corners, chessBoardDetected);
     }
 
     void UpdateRotTransMat(cv::Size cameraSize, mat4& rotTransMat)
@@ -131,18 +135,19 @@ public:
 
     //get the camera matrix via opencv and copy it to a float16 mat4.
     //automatically also updates rotation and translation vectors
-    void CalcCameraMat(cv::Size cameraSize, mat4& cameraMat)
+    void CalcCameraMat(const cv::Size& cameraSize)
     {
-        cv::calibrateCamera(objectPoints, imgPoints, cameraSize, cameraMatrix, dist_coeffs, rotation_vectors, translation_vectors);
-        fromCVMatToGLMat(cameraMatrix, cameraMat);
-        cameraMatKnown = true;
+        if (imgPoints.size() > 0) {
+            cv::calibrateCamera(objectPoints, imgPoints, cameraSize, cameraMatrix, dist_coeffs, rotation_vectors, translation_vectors);
+            fromCVMatToGLMat(cameraMatrix, cameraMat);
+            cameraMatKnown = true;
 
-        std::cout << "printing opengl cameramat result:\n";
-        for(int i = 0; i < 16; i++)
-        {
-            std::cout << cameraMat[i] << ", ";
+            std::cout << "printing opengl cameramat result:\n";
+            for (int i = 0; i < 16; i++) {
+                std::cout << cameraMat[i] << ", ";
+            }
+            std::cout << "\n";
         }
-        std::cout << "\n";
     }
 
     void PrintResults() {

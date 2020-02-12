@@ -18,7 +18,6 @@
 #include "RenderPass.h"
 #include "Renderer.h"
 
-#define CALIBRATE_FROM_SAVED
 std::string calibImageFolder =  "C:/Users/eempi/CLionProjects/INFOMCV_calibration/calibImages/";
 
 constexpr float oneSquareMm = 2.3f;
@@ -213,12 +212,9 @@ int main(int argc, char* argv[]) {
                     calibrateFrame = true;
                     break;
                 case SDLK_r:
-#ifdef CALIBRATE_FROM_SAVED
                     if (calibImageFolder != "")
                         calibration.LoadFromSaved(calibImageFolder);
-#endif
-                    calibration.CalcCameraMat(screenSize, cameraMat);
-
+                    calibration.CalcCameraMat(screenSize);
                     calibration.PrintResults();
                     break;
                 case SDLK_s:
@@ -275,14 +271,13 @@ int main(int argc, char* argv[]) {
 
             //fromCVMatToGLMat(calibration.)
 
-
             axisPipeline->setUniform("rotTransMat", rotTransMat);
-            axisPipeline->setUniform("cameraMat", cameraMat);
+            axisPipeline->setUniform("cameraMat", calibration.cameraMat);
 
             axis->draw();
         }
 
-        ui->draw(renderer->getNativeWindowHandle());
+        ui->draw(renderer->getNativeWindowHandle(), calibration, screenWidth, screenHeight);
         renderer->swapBuffers();
     }
     return EXIT_SUCCESS;

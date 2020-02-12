@@ -5,6 +5,7 @@
 struct SDL_Window;
 struct ImGuiContext;
 union SDL_Event;
+class Calibration;
 
 namespace imgui_addons
 {
@@ -22,7 +23,7 @@ public:
   virtual ~Ui();
 
   void processEvent(const SDL_Event& event);
-  void draw(SDL_Window* window);
+  void draw(SDL_Window* window, Calibration& calibration, int cameraWidth, int cameraHeight);
 
 private:
   explicit Ui(std::unique_ptr<ImGuiContext, ImGuiDestroyer>&& context);
@@ -30,4 +31,7 @@ private:
   std::unique_ptr<ImGuiContext, ImGuiDestroyer> context_;
   bool show_save_dialog_;
   std::unique_ptr<imgui_addons::ImGuiFileBrowser> folderDialog_;
+
+public:
+  char CalibrationDirectoryPath[0x400];
 };
