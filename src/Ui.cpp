@@ -53,7 +53,7 @@ Ui::Ui(std::unique_ptr<ImGuiContext, ImGuiDestroyer>&& context)
       auto ui = reinterpret_cast<Ui*>(handler->UserData);
       char directoryPath[0x400];
       if (sscanf(line, "DirectoryPath=%1023[^\n]", directoryPath) != EOF)
-          std::memcpy(ui->CalibrationDirectoryPath, directoryPath, sizeof(CalibrationDirectoryPath));
+          std::memcpy(ui->CalibrationDirectoryPath, directoryPath, sizeof(ui->CalibrationDirectoryPath));
     };
     ini_handler.WriteAllFn = [](ImGuiContext* ctx, ImGuiSettingsHandler* handler, ImGuiTextBuffer* buf) -> void {
       auto ui = reinterpret_cast<Ui*>(handler->UserData);

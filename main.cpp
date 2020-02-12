@@ -78,22 +78,19 @@ int main(int argc, char* argv[]) {
     }
 
     cv::ocl::setUseOpenCL(true);
-    if (!cv::ocl::haveOpenCL())
-    {
+    if (!cv::ocl::haveOpenCL()) {
         std::printf("OpenCL is not available...\n");
         return EXIT_FAILURE;
     }
 
     cv::ocl::Context context;
-    if (!context.create(cv::ocl::Device::TYPE_GPU))
-    {
+    if (!context.create(cv::ocl::Device::TYPE_GPU)) {
         std::printf("Failed creating the context...\n");
         return EXIT_FAILURE;
     }
 
     std::printf("%zu GPU devices are detected.\n", context.ndevices());
-    for (int i = 0; i < context.ndevices(); i++)
-    {
+    for (int i = 0; i < context.ndevices(); i++) {
         const cv::ocl::Device& device = context.device(i);
         std::printf("name: %s\n"
                     "available: %s\n"
@@ -105,7 +102,6 @@ int main(int argc, char* argv[]) {
                     device.OpenCL_C_Version().c_str());
     }
 
-
     cv::VideoCapture videoSource;
     if (!videoSource.open(videoSourceIndex)) {
         std::fprintf(stderr, "Could not open video source on index %d\n",
@@ -115,13 +111,6 @@ int main(int argc, char* argv[]) {
     uint32_t screenWidth = videoSource.get(cv::CAP_PROP_FRAME_WIDTH);
     uint32_t screenHeight = videoSource.get(cv::CAP_PROP_FRAME_HEIGHT);
     cv::Size screenSize = cv::Size(screenWidth, screenHeight);
-
-    mat4 rotTransMat {
-        1, 0, 0, 0,
-        0, 1, 0, 0,
-        0, 0, 1, 0,
-        0, 0, 0, 1
-    };
 
     auto renderer = Renderer::create("Calibration", screenWidth, screenHeight);
     if (!renderer) {
@@ -191,13 +180,21 @@ int main(int argc, char* argv[]) {
     std::string calibFileName;
 
     bool cameraMatKnown = false;
-    mat4 cameraMat {
-            1, 0, 0, 0,
-            0, 1, 0, 0,
-            0, 0, 1, 0,
-            0, 0, 0, 1
-    };
+    //clang-format off
+    mat4 cameraMat{
+        1, 0, 0, 0,
+        0, 1, 0, 0,
+        0, 0, 1, 0,
+        0, 0, 0, 1};
 
+    mat4 rotTransMat{
+        1, 0, 0, 0,
+        0, 1, 0, 0,
+        0, 0, 1, 0,
+        0, 0, 0, 1};
+
+    //clang-format on
+    bool firstFrame = true;
 
     while (running) {
         calibrateFrame = false;
@@ -237,22 +234,22 @@ int main(int argc, char* argv[]) {
             running = false;
             std::fprintf(stderr,
                          "Camera returned an empty frame... Quitting.\n");
-        } else {
-
-            if (saveNextImage)
-            {
-                if (!cv::imwrite(calibFileName, frame)) {
-                    std::cout << "failed to save file\n";
-                }
-                saveNextImage = false;
-                std::cout << "image saved\n";
-            }
-
-            calibration.DetectPattern(frame, calibrateFrame, true); //write calibration colors to image
-
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, screenWidth, screenHeight, 0,
-                         GL_RGB, GL_UNSIGNED_BYTE, frame.data);
+            return EXIT_FAILURE;
         }
+
+        if (saveNextImage) {
+            if (!cv::imwrite(calibFileName, frame)) {
+                std::cout << "failed to save file\n";
+            }
+            saveNextImage = false;
+            std::cout << "image saved\n";
+        }
+
+        calibration.DetectPattern(frame, calibrateFrame,
+                                  true); // write calibration colors to image
+
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, screenWidth, screenHeight, 0,
+                     GL_RGB, GL_UNSIGNED_BYTE, frame.data);
 
         fullscreenPass->bind();
         glBindTexture(GL_TEXTURE_2D, texture);
@@ -263,15 +260,16 @@ int main(int argc, char* argv[]) {
 
         axisPipeline->bind();
 
-        if(calibration.cameraMatKnown)
-        {
-            // TODO(amber): Set these matrices from what we get from opencv
-            //fromCVMatToGLMat(calibration.)
+        if (calibration.cameraMatKnown) {
+            if (calibration.UpdateRotTransMat(screenSize, rotTransMat, !firstFrame)) {
 
-            axisPipeline->setUniform("rotTransMat", rotTransMat);
-            axisPipeline->setUniform("cameraMat", calibration.cameraMat);
+                firstFrame = false;
 
-            axis->draw();
+                axisPipeline->setUniform("rotTransMat", rotTransMat);
+                axisPipeline->setUniform("cameraMat", cameraMat);
+
+                axis->draw();
+            }
         }
 
         ui->draw(renderer->getNativeWindowHandle(), calibration, screenWidth, screenHeight, rotTransMat);
