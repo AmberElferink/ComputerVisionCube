@@ -91,6 +91,14 @@ void Ui::draw(SDL_Window* window, Calibration& calibration, int cameraWidth, int
 
             calibration.PrintResults();
         }
+        if (ImGui::BeginChild("Calibration Matrix", ImVec2(300, -ImGui::GetTextLineHeightWithSpacing()))) {
+            ImGui::Text("Calibration Matrix");
+            ImGui::InputFloat4("##calibration0", calibration.cameraMat + 0);
+            ImGui::InputFloat4("##calibration1", calibration.cameraMat + 4);
+            ImGui::InputFloat4("##calibration2", calibration.cameraMat + 8);
+            ImGui::InputFloat4("##calibration3", calibration.cameraMat + 12);
+        }
+        ImGui::EndChild();
     }
     ImGui::End();
 
