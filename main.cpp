@@ -266,7 +266,7 @@ int main(int argc, char* argv[]) {
                 firstFrame = false;
 
                 axisPipeline->setUniform("rotTransMat", rotTransMat);
-                axisPipeline->setUniform("cameraMat", cameraMat);
+                axisPipeline->setUniform("cameraMat", calibration.cameraMat);
 
                 axis->draw();
             }

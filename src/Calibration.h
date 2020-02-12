@@ -185,6 +185,11 @@ public:
     //automatically also updates rotation and translation vectors
     void CalcCameraMat(cv::Size cameraSize)
     {
+        if (initial_imgPoints.size() == 0)
+        {
+            std::cout << "make sure to capture calibration images first by loading them from harddisk or capturing them\n";
+            return;
+        }
         cv::calibrateCamera(initial_objectPoints, initial_imgPoints, cameraSize, cameraMatrix, dist_coeffs, initial_rotation_vectors,initial_translation_vectors);
         fromCVMatToGLMat(cameraMatrix, cameraMat);
         cameraMatKnown = true;
