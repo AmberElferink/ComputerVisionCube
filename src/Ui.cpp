@@ -73,7 +73,7 @@ void Ui::processEvent(const SDL_Event& event) {
     ImGui_ImplSDL2_ProcessEvent(&event);
 }
 
-void Ui::draw(SDL_Window* window, Calibration& calibration, int cameraWidth, int cameraHeight) {
+void Ui::draw(SDL_Window* window, Calibration& calibration, int cameraWidth, int cameraHeight, float* objectMatrix) {
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplSDL2_NewFrame(window);
     ImGui::NewFrame();
@@ -90,12 +90,20 @@ void Ui::draw(SDL_Window* window, Calibration& calibration, int cameraWidth, int
 
             calibration.PrintResults();
         }
-        if (ImGui::BeginChild("Camera Matrix", ImVec2(300, -ImGui::GetTextLineHeightWithSpacing()))) {
+        if (ImGui::BeginChild("Camera Matrix", ImVec2(400, 6 * ImGui::GetTextLineHeightWithSpacing()))) {
             ImGui::Text("Camera Matrix");
             ImGui::InputFloat4("##camera_matrix_0", calibration.cameraMat + 0);
             ImGui::InputFloat4("##camera_matrix_1", calibration.cameraMat + 4);
             ImGui::InputFloat4("##camera_matrix_2", calibration.cameraMat + 8);
             ImGui::InputFloat4("##camera_matrix_3", calibration.cameraMat + 12);
+        }
+        ImGui::EndChild();
+        if (ImGui::BeginChild("Object Matrix", ImVec2(400, 6 * ImGui::GetTextLineHeightWithSpacing()))) {
+            ImGui::Text("Object Matrix");
+            ImGui::InputFloat4("##object_matrix_0", objectMatrix + 0);
+            ImGui::InputFloat4("##object_matrix_1", objectMatrix + 4);
+            ImGui::InputFloat4("##object_matrix_2", objectMatrix + 8);
+            ImGui::InputFloat4("##object_matrix_3", objectMatrix + 12);
         }
         ImGui::EndChild();
     }

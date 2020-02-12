@@ -116,6 +116,13 @@ int main(int argc, char* argv[]) {
     uint32_t screenHeight = videoSource.get(cv::CAP_PROP_FRAME_HEIGHT);
     cv::Size screenSize = cv::Size(screenWidth, screenHeight);
 
+    mat4 rotTransMat {
+        1, 0, 0, 0,
+        0, 1, 0, 0,
+        0, 0, 1, 0,
+        0, 0, 0, 1
+    };
+
     auto renderer = Renderer::create("Calibration", screenWidth, screenHeight);
     if (!renderer) {
         std::fprintf(stderr, "Failed to initialize renderer\n");
@@ -259,14 +266,6 @@ int main(int argc, char* argv[]) {
         if(calibration.cameraMatKnown)
         {
             // TODO(amber): Set these matrices from what we get from opencv
-
-            mat4 rotTransMat {
-                    1, 0, 0, 0,
-                    0, 1, 0, 0,
-                    0, 0, 1, 0,
-                    0, 0, 0, 1
-            };
-
             //fromCVMatToGLMat(calibration.)
 
             axisPipeline->setUniform("rotTransMat", rotTransMat);
@@ -275,7 +274,7 @@ int main(int argc, char* argv[]) {
             axis->draw();
         }
 
-        ui->draw(renderer->getNativeWindowHandle(), calibration, screenWidth, screenHeight);
+        ui->draw(renderer->getNativeWindowHandle(), calibration, screenWidth, screenHeight, rotTransMat);
         renderer->swapBuffers();
     }
     return EXIT_SUCCESS;
