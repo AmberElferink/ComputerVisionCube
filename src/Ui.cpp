@@ -79,8 +79,7 @@ void Ui::draw(SDL_Window* window, Calibration& calibration, int cameraWidth, int
     ImGui::NewFrame();
 
     if (ImGui::Begin("Configuration ")) {
-        ImGui::Text("Offline calibration directory");
-        ImGui::SameLine();
+        ImGui::Text("Offline calibration directory:");
         ImGui::InputText("##Offline calibration files", CalibrationDirectoryPath, sizeof(CalibrationDirectoryPath));
         ImGui::SameLine();
         show_save_dialog_ = ImGui::Button("...##SelectDirectory");
@@ -91,12 +90,12 @@ void Ui::draw(SDL_Window* window, Calibration& calibration, int cameraWidth, int
 
             calibration.PrintResults();
         }
-        if (ImGui::BeginChild("Calibration Matrix", ImVec2(300, -ImGui::GetTextLineHeightWithSpacing()))) {
-            ImGui::Text("Calibration Matrix");
-            ImGui::InputFloat4("##calibration0", calibration.cameraMat + 0);
-            ImGui::InputFloat4("##calibration1", calibration.cameraMat + 4);
-            ImGui::InputFloat4("##calibration2", calibration.cameraMat + 8);
-            ImGui::InputFloat4("##calibration3", calibration.cameraMat + 12);
+        if (ImGui::BeginChild("Camera Matrix", ImVec2(300, -ImGui::GetTextLineHeightWithSpacing()))) {
+            ImGui::Text("Camera Matrix");
+            ImGui::InputFloat4("##camera_matrix_0", calibration.cameraMat + 0);
+            ImGui::InputFloat4("##camera_matrix_1", calibration.cameraMat + 4);
+            ImGui::InputFloat4("##camera_matrix_2", calibration.cameraMat + 8);
+            ImGui::InputFloat4("##camera_matrix_3", calibration.cameraMat + 12);
         }
         ImGui::EndChild();
     }
