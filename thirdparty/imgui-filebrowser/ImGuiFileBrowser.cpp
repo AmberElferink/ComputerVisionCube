@@ -141,8 +141,8 @@ namespace imgui_addons
 
             //Reinitialize the limit on number of selectables in one column based on height
             col_items_limit = (sz_xy.y - 119) / 17;
-            int num_cols = std::max(1.0f, std::ceil((filtered_dirs.size() + filtered_files.size()) / (float) col_items_limit));
-            float content_width = std::max(sz_xy.x - ImGui::GetStyle().WindowPadding.x * 2, num_cols * col_width);
+            int num_cols = (std::max)(1.0f, std::ceil((filtered_dirs.size() + filtered_files.size()) / (float) col_items_limit));
+            float content_width = (std::max)(sz_xy.x - ImGui::GetStyle().WindowPadding.x * 2, num_cols * col_width);
 
             ImGui::SetCursorPos(cursor_pos);
             ImGui::SetNextWindowContentSize(ImVec2(content_width, 0.0f));
@@ -302,8 +302,8 @@ namespace imgui_addons
 
             //Reinitialize the limit on number of selectables in one column based on height
             col_items_limit = (sz_xy.y - 119) / 17;
-            int num_cols = std::max(1.0f, std::ceil((subdirs.size() + subfiles.size()) / (float) col_items_limit));
-            float content_width = std::max(sz_xy.x - ImGui::GetStyle().WindowPadding.x * 2, num_cols * col_width);
+            int num_cols = (std::max)(1.0f, std::ceil((subdirs.size() + subfiles.size()) / (float) col_items_limit));
+            float content_width = (std::max)(sz_xy.x - ImGui::GetStyle().WindowPadding.x * 2, num_cols * col_width);
 
             ImGui::SetNextWindowContentSize(ImVec2(content_width, 0.0f));
             ImGui::BeginChild("##ScrollingRegion", ImVec2(0, -70), true, ImGuiWindowFlags_HorizontalScrollbar);
@@ -624,7 +624,7 @@ namespace imgui_addons
 
     void ImGuiFileBrowser::showInvalidFileModal()
     {
-        int height = std::min(180.0, 125.0 + valid_exts.size() * 17);
+        int height = (std::min)(180.0, 125.0 + valid_exts.size() * 17);
         ImVec2 window_size(350, height);
         ImGui::SetNextWindowSize(window_size);
 

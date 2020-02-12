@@ -1,8 +1,47 @@
 #include <vector>
 #include <opencv2/calib3d.hpp>
-//        cv::line(frame, corners[0], corners[1], cv::Scalar(255,0,0), 5);
 
+// mat4 is equivalent to float[16]
+typedef float mat4[16];
 
+//copies Mat4 from opencv to opengl (float[16]) mat
+void fromCVMatToGLMat(cv::Mat cvMat, mat4& glMat)
+{
+    //convert mat to correct type (float 1 channel)
+    if (cvMat.type() != CV_32FC1) {
+        int type = cvMat.type();
+        cvMat.convertTo(cvMat, CV_32FC1);
+    }
+    if (cvMat.cols == 3 && cvMat.rows == 3)
+    {
+        //appends a row and column to make the matrix 4x4. Example:
+        //from:
+        // [732,   0, 309;
+        //    0, 724,  84;
+        //    0,   0,   1]
+        // to:
+        // [732, 0, 309, 0;
+         //  0, 724, 84, 0;
+         //  0,   0,  1, 0;
+         //  0,   0,  0, 1]
+
+        //extend to 4 cols and rows
+        cv::Mat row = cv::Mat::zeros(1, 3, cvMat.type());
+        cv::Mat col = cv::Mat::zeros(4, 1, cvMat.type());
+        cvMat.push_back(row);
+        cv::hconcat(cvMat, col, cvMat);
+        cvMat.at<float>(3, 3) = 1;
+    }
+
+    //https://stackoverflow.com/questions/44409443/how-a-cvmat-translate-from-to-a-glmmat4
+    else if (cvMat.cols != 4 || cvMat.rows != 4 || cvMat.type() != CV_32FC1)
+    {
+        std::cout << "Matrix conversion error!" << std::endl;
+        return;
+    }
+    // cv::transpose(cvMat, cvMat);
+    memcpy(glMat, cvMat.data, 16 * sizeof(float));
+}
 
 //python code adapted and translated: https://opencv-python-tutroals.readthedocs.io/en/latest/py_tutorials/py_calib3d/py_calibration/py_calibration.html
 //combined with parts of cpp code: https://docs.opencv.org/2.4/doc/tutorials/calib3d/camera_calibration/camera_calibration.html
@@ -13,6 +52,8 @@ class Calibration
     cv::Mat dist_coeffs;
     cv::Mat translation_vectors;
     cv::Mat rotation_vectors;
+
+    bool cameraMatKnown = false;
 
 private:
     int mmSideSquare = 23;
@@ -56,7 +97,7 @@ public:
        bool keepReading = true;
         while(keepReading)
         {
-            std::string calibFileName = path + std::to_string(calibFileCounter) + ".png";
+            std::string calibFileName = path + "calib" + std::to_string(calibFileCounter) + ".png";
             calibFileCounter++;
             cv::Mat image = cv::imread(calibFileName);
             keepReading = image.data;
@@ -69,7 +110,7 @@ public:
     {
         std::vector<cv::Point2f> corners;
         bool chessBoardDetected = cv::findChessboardCorners(frame, patternSize, corners);
-        if (chessBoardDetected && addImage)
+
         if (chessBoardDetected && addImage)
         {
             objectPoints.push_back(objp); //push back the default real world positions
@@ -81,9 +122,27 @@ public:
 			cv::drawChessboardCorners(frame, patternSize, corners, chessBoardDetected);
     }
 
-    void CalcCameraMat(cv::Size cameraSize)
+    void UpdateRotTransMat(cv::Size cameraSize, mat4& rotTransMat)
+    {
+        //if (cameraMatKnown)
+        //    //calibrateCamera, when cameraMat is already known
+        //    cv::solvePnP(objectPoints, imgPoints, cameraMatrix, dist_coeffs, rotation_vectors, translation_vectors, true, )
+    }
+
+    //get the camera matrix via opencv and copy it to a float16 mat4.
+    //automatically also updates rotation and translation vectors
+    void CalcCameraMat(cv::Size cameraSize, mat4& cameraMat)
     {
         cv::calibrateCamera(objectPoints, imgPoints, cameraSize, cameraMatrix, dist_coeffs, rotation_vectors, translation_vectors);
+        fromCVMatToGLMat(cameraMatrix, cameraMat);
+        cameraMatKnown = true;
+
+        std::cout << "printing opengl cameramat result:\n";
+        for(int i = 0; i < 16; i++)
+        {
+            std::cout << cameraMat[i] << ", ";
+        }
+        std::cout << "\n";
     }
 
     void PrintResults() {

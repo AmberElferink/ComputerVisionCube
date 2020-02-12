@@ -19,7 +19,7 @@
 #include "Renderer.h"
 
 #define CALIBRATE_FROM_SAVED
-std::string calibImageFolder =  "calib";
+std::string calibImageFolder =  "C:/Users/eempi/CLionProjects/INFOMCV_calibration/calibImages/";
 
 constexpr float oneSquareMm = 2.3f;
 const cv::Size patternSize = cv::Size(6, 9);
@@ -55,12 +55,12 @@ constexpr std::string_view axisVertexShaderSource =
     "layout (location = 0) in vec3 position;\n"
     "layout (location = 1) in vec3 color;\n"
     "layout (location = 0) out vec4 out_color;\n"
-    "uniform mat4 model;\n"
-    "uniform mat4 viewProj;\n"
+    "uniform mat4 rotTransMat;\n"
+    "uniform mat4 cameraMat;\n"
     "\n"
     "void main()\n"
     "{\n"
-    "    gl_Position = viewProj * model * vec4(position, 1.0);\n"
+    "    gl_Position = cameraMat * rotTransMat * vec4(position, 1.0);\n"
     "    out_color = vec4(color, 1.0);\n"
     "}\n";
 
@@ -181,6 +181,14 @@ int main(int argc, char* argv[]) {
     bool saveNextImage = false;
     std::string calibFileName;
 
+    bool cameraMatKnown = false;
+    mat4 cameraMat {
+            1, 0, 0, 0,
+            0, 1, 0, 0,
+            0, 0, 1, 0,
+            0, 0, 0, 1
+    };
+
 
     while (running) {
         calibrateFrame = false;
@@ -200,13 +208,15 @@ int main(int argc, char* argv[]) {
                     break;
                 case SDLK_r:
 #ifdef CALIBRATE_FROM_SAVED
-                    calibration.LoadFromSaved(calibImageFolder);
+                    if (calibImageFolder != "")
+                        calibration.LoadFromSaved(calibImageFolder);
 #endif
-                    calibration.CalcCameraMat(screenSize);
+                    calibration.CalcCameraMat(screenSize, cameraMat);
+                    
                     calibration.PrintResults();
                     break;
                 case SDLK_s:
-                    calibFileName = calibImageFolder + std::to_string(calibFileCounter) + ".png";
+                    calibFileName = calibImageFolder + "calib" + std::to_string(calibFileCounter) + ".png";
                     calibFileCounter++;
                     saveNextImage = true;
                     break;
@@ -231,7 +241,7 @@ int main(int argc, char* argv[]) {
                 std::cout << "image saved\n";
             }
 
-//            calibration.DetectPattern(frame, calibrateFrame, true); //write calibration colors to image
+            calibration.DetectPattern(frame, calibrateFrame, true); //write calibration colors to image
 
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, screenWidth, screenHeight, 0,
                          GL_RGB, GL_UNSIGNED_BYTE, frame.data);
@@ -246,24 +256,27 @@ int main(int argc, char* argv[]) {
 
         axisPipeline->bind();
 
-        // TODO(amber): Set these matrices from what we get from opencv
-        mat4 modelMatrix {
-            1, 0, 0, 0,
-            0, 1, 0, 0,
-            0, 0, 1, 0,
-            0, 0, 0, 1
-        };
-        mat4 viewProjMatrix {
-            1, 0, 0, 0,
-            0, 1, 0, 0,
-            0, 0, 1, 0,
-            0, 0, 0, 1
-        };
+        if(calibration.cameraMatKnown)
+        {
+            // TODO(amber): Set these matrices from what we get from opencv
+
+            mat4 rotTransMat {
+                    1, 0, 0, 0,
+                    0, 1, 0, 0,
+                    0, 0, 1, 0,
+                    0, 0, 0, 1
+            };
+
+            //fromCVMatToGLMat(calibration.)
 
 
-        axisPipeline->setUniform("model", modelMatrix);
-        axisPipeline->setUniform("viewProj", viewProjMatrix);
-        axis->draw();
+            axisPipeline->setUniform("rotTransMat", rotTransMat);
+            axisPipeline->setUniform("cameraMat", cameraMat);
+
+            axis->draw();
+        }
+
+
 
         renderer->DrawUi();
 
