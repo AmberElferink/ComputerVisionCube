@@ -40,7 +40,7 @@ Ui::Ui(std::unique_ptr<ImGuiContext, ImGuiDestroyer>&& context)
     : context_(std::move(context))
     , show_save_dialog_(false)
     , folderDialog_(std::make_unique<imgui_addons::ImGuiFileBrowser>())
-    , CalibrationDirectoryPath{0}
+    , CalibrationDirectoryPath{"C:/Users/eempi/CLionProjects/INFOMCV_calibration/calibImages/"}
 {
     ImGuiSettingsHandler ini_handler;
     ini_handler.TypeName = "UserData";

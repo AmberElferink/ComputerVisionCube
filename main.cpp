@@ -261,15 +261,16 @@ int main(int argc, char* argv[]) {
         axisPipeline->bind();
 
         if (calibration.cameraMatKnown) {
-            if (calibration.UpdateRotTransMat(screenSize, rotTransMat, !firstFrame)) {
+            //if (calibration.UpdateRotTransMat(screenSize, rotTransMat, !firstFrame)) {
 
+                calibration.UpdateRotTransMat(screenSize, rotTransMat,false);
                 firstFrame = false;
 
                 axisPipeline->setUniform("rotTransMat", rotTransMat);
                 axisPipeline->setUniform("cameraMat", calibration.cameraMat);
 
                 axis->draw();
-            }
+           // }
         }
 
         ui->draw(renderer->getNativeWindowHandle(), calibration, screenWidth, screenHeight, rotTransMat);

@@ -40,13 +40,25 @@ static void fromCVMatToGLMat(cv::Mat cvMat, mat4& glMat) {
 
     extendMat3ToMat4(cvMat); //only does it if it is indeed a Mat3
 
+
+
     // https://stackoverflow.com/questions/44409443/how-a-cvmat-translate-from-to-a-glmmat4
     if (cvMat.cols != 4 || cvMat.rows != 4 || cvMat.type() != CV_32FC1) {
         std::cout << "Matrix conversion error!" << std::endl;
         return;
     }
-    // cv::transpose(cvMat, cvMat);
-    memcpy(glMat, cvMat.data, 16 * sizeof(float));
+
+    cv::Mat cvToGl = cv::Mat::zeros(4, 4, CV_32F);
+    cvToGl.at<float>(0, 0) = 1.0f;
+    cvToGl.at<float>(1, 1) = -1.0f; // Invert the y axis
+    cvToGl.at<float>(2, 2) = -1.0f; // invert the z axis
+    cvToGl.at<float>(3, 3) = 1.0f;
+
+    cvMat = cvToGl * cvMat;
+    cv::Mat transposeMat = cv::Mat::zeros(4, 4, CV_32F);
+    cv::transpose(cvMat, transposeMat);
+    
+    memcpy(glMat, transposeMat.data, 16 * sizeof(float));
 }
 
 
@@ -91,8 +103,7 @@ public:
     Calibration(const int patternWidth, const int patternHeight, const int mmSideSquare)
     {
         cameraMatrix = cv::Mat::eye(3, 3, CV_64F);
-        // cameraMatrix.at<double>(0,0) = 1.0; //if using fixed aspec ratio (cpp
-        // code link)
+
         dist_coeffs = cv::Mat::zeros(8, 1, CV_64F);
 
         patternSize = cv::Size(patternWidth, patternHeight);
@@ -150,20 +161,31 @@ public:
                 // calibrateCamera, when cameraMat and an approximation is already known
                 cv::solvePnP(objp, imgPoints, cameraMatrix, dist_coeffs, rotation_vec, translation_vec, usePrevFrame);
                 cv::Mat rotMat = rotation_vec;
-                rotMat.at<double>(0) = rotation_vec.at<double>(1);
-                rotMat.at<double>(1) = rotation_vec.at<double>(0);
-                rotMat.at<double>(2) = rotation_vec.at<double>(2);
+                //rotMat.at<double>(0) = rotation_vec.at<double>(1);
+                //rotMat.at<double>(1) = rotation_vec.at<double>(0);
+                //rotMat.at<double>(2) = rotation_vec.at<double>(2);
 
                 cv::Rodrigues(rotation_vec, rotMat);
 
                 fromCVMatToGLMat(rotMat, rotTransMat);
 
                 //set translations into existing rot matrix
-                rotTransMat[12] = translation_vec.at<double>(0);
-                rotTransMat[13] = translation_vec.at<double>(1);
-                rotTransMat[14] = translation_vec.at<double>(2);
+                //rotTransMat[12] = translation_vec.at<double>(0);
+                //rotTransMat[13] = translation_vec.at<double>(1);
+                //rotTransMat[14] = translation_vec.at<double>(2);
 
-              
+                //identity
+                cv::Mat transposeMat = cv::Mat::zeros(4, 4, CV_32F);
+                transposeMat.at<double>(0, 0) = 1;
+                transposeMat.at<double>(1, 1) = 1;
+                transposeMat.at<double>(2, 2) = 1;
+                transposeMat.at<double>(3, 3) = 1;
+                              
+                transposeMat.at<double>(3, 0) = translation_vec.at<double>(0);
+                transposeMat.at<double>(3, 1) = translation_vec.at<double>(1);
+                transposeMat.at<double>(3, 2) = translation_vec.at<double>(2);
+
+                fromCVMatToGLMat(transposeMat, rotTransMat);
 
                 std::cout << "finalMat\n";
                     for (int j = 0; j < 4; j++)
