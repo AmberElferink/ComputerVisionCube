@@ -18,8 +18,6 @@
 #include "RenderPass.h"
 #include "Renderer.h"
 
-std::string calibImageFolder =  "C:/Users/eempi/CLionProjects/INFOMCV_calibration/calibImages/";
-
 constexpr float oneSquareMm = 2.3f;
 const cv::Size patternSize = cv::Size(6, 9);
 
@@ -212,13 +210,13 @@ int main(int argc, char* argv[]) {
                     calibrateFrame = true;
                     break;
                 case SDLK_r:
-                    if (calibImageFolder != "")
-                        calibration.LoadFromSaved(calibImageFolder);
+                    if (ui->CalibrationDirectoryPath != "")
+                        calibration.LoadFromSaved(ui->CalibrationDirectoryPath);
                     calibration.CalcCameraMat(screenSize);
                     calibration.PrintResults();
                     break;
                 case SDLK_s:
-                    calibFileName = calibImageFolder + "calib" + std::to_string(calibFileCounter) + ".png";
+                    calibFileName = std::string(ui->CalibrationDirectoryPath) + "calib" + std::to_string(calibFileCounter) + ".png";
                     calibFileCounter++;
                     saveNextImage = true;
                     break;
