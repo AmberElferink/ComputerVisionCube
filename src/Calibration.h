@@ -84,12 +84,12 @@ static void fromCVPerspToGLProj(cv::Mat cvMat, mat4& glMat) {
 
     glMat[8] = 0.0f;
     glMat[9] = 0.0f;
-    glMat[10] = -1.0f;
-    glMat[11] = 0.0f;
+    glMat[10] = 1.0f;
+    glMat[11] = 1.0f;
 
     glMat[12] = 0.0f;
     glMat[13] = 0.0f;
-    glMat[14] = -1.0f;
+    glMat[14] = 0.0f;
     glMat[15] = 0.0f;
 }
 
@@ -101,7 +101,7 @@ static void fromCVPerspToGLProj(cv::Mat cvMat, mat4& glMat) {
 class Calibration {
   public:
     cv::Mat cameraMatrix; // empty until calibration is complete
-    mat4 cameraMat;
+    mat4 cameraProjMat;
 
     bool cameraMatKnown = false;
 
@@ -148,7 +148,7 @@ public:
             for (int j = 0; j < patternSize.height; j++)
             {
                 // real world coordinates in mm of the inner corners if Z = 0 (so only x and y coordinates).
-                objp[i + j * patternSize.width] = cv::Vec3f(i * mmSideSquare, j * mmSideSquare, 0);
+                objp[i + j * patternSize.width] = cv::Vec3f(i * mmSideSquare * 0.001f, j * mmSideSquare * 0.001f, 0);
             }
         }
     }
@@ -206,9 +206,9 @@ public:
 
                 //identity
                 cv::Mat translate = cv::Mat::zeros(4, 4, CV_64F);
-                translate.at<double>(0, 0) = 1;
-                translate.at<double>(1, 1) = 1;
-                translate.at<double>(2, 2) = 1;
+                translate.at<double>(0, 0) = 1000;
+                translate.at<double>(1, 1) = 1000;
+                translate.at<double>(2, 2) = 1000;
                 translate.at<double>(3, 3) = 1;
                               
                 translate.at<double>(0, 3) = translation_vec.at<double>(0);
@@ -248,7 +248,7 @@ public:
 
         std::cout << "printing opengl cameramat result:\n";
         for (int i = 0; i < 16; i++) {
-            std::cout << cameraMat[i] << ", ";
+            std::cout << cameraProjMat[i] << ", ";
         }
         std::cout << "\n";
     }

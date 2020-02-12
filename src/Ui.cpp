@@ -92,10 +92,10 @@ void Ui::draw(SDL_Window* window, Calibration& calibration, int cameraWidth, int
         }
         if (ImGui::BeginChild("Camera Matrix", ImVec2(400, 6 * ImGui::GetTextLineHeightWithSpacing()))) {
             ImGui::Text("Camera Matrix");
-            ImGui::InputFloat4("##camera_matrix_0", calibration.cameraMat + 0);
-            ImGui::InputFloat4("##camera_matrix_1", calibration.cameraMat + 4);
-            ImGui::InputFloat4("##camera_matrix_2", calibration.cameraMat + 8);
-            ImGui::InputFloat4("##camera_matrix_3", calibration.cameraMat + 12);
+            ImGui::InputFloat4("##camera_matrix_0", calibration.cameraProjMat + 0);
+            ImGui::InputFloat4("##camera_matrix_1", calibration.cameraProjMat + 4);
+            ImGui::InputFloat4("##camera_matrix_2", calibration.cameraProjMat + 8);
+            ImGui::InputFloat4("##camera_matrix_3", calibration.cameraProjMat + 12);
         }
         ImGui::EndChild();
         if (ImGui::BeginChild("Object Matrix", ImVec2(400, 6 * ImGui::GetTextLineHeightWithSpacing()))) {
