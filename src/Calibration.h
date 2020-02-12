@@ -61,6 +61,33 @@ static void fromCVMatToGLMat(cv::Mat cvMat, mat4& glMat) {
     memcpy(glMat, transposeMat.data, 16 * sizeof(float));
 }
 
+static void fromCVPerspToGLProj(cv::Mat cvMat, mat4& glMat) {
+    double fx = cvMat.at<double>(0, 0);
+    double fy = cvMat.at<double>(1, 1);
+    double cx = cvMat.at<double>(0, 2);
+    double cy = cvMat.at<double>(1, 2);
+
+    // Infinite projection
+    glMat[0] = fx / cx;
+    glMat[1] = 0.0f;
+    glMat[2] = 0.0f;
+    glMat[3] = 0.0f;
+
+    glMat[4] = 0.0f;
+    glMat[5] = fy / cy;
+    glMat[6] = 0.0f;
+    glMat[7] = 0.0f;
+
+    glMat[8] = 0.0f;
+    glMat[9] = 0.0f;
+    glMat[10] = -1.0f;
+    glMat[11] = 0.0f;
+
+    glMat[12] = 0.0f;
+    glMat[13] = 0.0f;
+    glMat[14] = -1.0f;
+    glMat[15] = 0.0f;
+}
 
 
 // python code adapted and translated:
@@ -213,7 +240,7 @@ public:
             return;
         }
         cv::calibrateCamera(initial_objectPoints, initial_imgPoints, cameraSize, cameraMatrix, dist_coeffs, initial_rotation_vectors,initial_translation_vectors);
-        fromCVMatToGLMat(cameraMatrix, cameraMat);
+        fromCVPerspToGLProj(cameraMatrix, cameraProjMat);
         cameraMatKnown = true;
 
         std::cout << "printing opengl cameramat result:\n";
