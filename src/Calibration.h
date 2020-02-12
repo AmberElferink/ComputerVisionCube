@@ -31,7 +31,7 @@ static void extendMat3ToMat4(cv::Mat &cvMat)
 }
 
 // copies Mat4 from opencv to opengl (float[16]) mat
-static void fromCVMatToGLMat(cv::Mat cvMat, mat4& glMat) {
+static void fromCVMatToGLMat(cv::Mat cvMat, mat4& glMat, bool invertYZ) {
     // convert mat to correct type (float 1 channel)
     if (cvMat.type() != CV_32FC1) {
         int type = cvMat.type();
@@ -48,13 +48,17 @@ static void fromCVMatToGLMat(cv::Mat cvMat, mat4& glMat) {
         return;
     }
 
-    cv::Mat cvToGl = cv::Mat::zeros(4, 4, CV_32F);
-    cvToGl.at<float>(0, 0) = 1.0f;
-    cvToGl.at<float>(1, 1) = -1.0f; // Invert the y axis
-    cvToGl.at<float>(2, 2) = -1.0f; // invert the z axis
-    cvToGl.at<float>(3, 3) = 1.0f;
+    if (invertYZ)
+    {
+        cv::Mat cvToGl = cv::Mat::zeros(4, 4, CV_32F);
+        cvToGl.at<float>(0, 0) = 1.0f;
+        cvToGl.at<float>(1, 1) = -1.0f; // Invert the y axis
+        cvToGl.at<float>(2, 2) = -1.0f; // invert the z axis
+        cvToGl.at<float>(3, 3) = 1.0f;
+        cvMat = cvToGl * cvMat;
+    }
 
-    cvMat = cvToGl * cvMat;
+
     cv::Mat transposeMat = cv::Mat::zeros(4, 4, CV_32F);
     cv::transpose(cvMat, transposeMat);
     
@@ -102,7 +106,6 @@ class Calibration {
     bool cameraMatKnown = false;
 
   private:
-    int mmSideSquare = 23;
     cv::Size patternSize;
 
     // these values are for the extrinsics, so they only contain info on the
@@ -194,7 +197,7 @@ public:
 
                 cv::Rodrigues(rotation_vec, rotMat);
 
-                fromCVMatToGLMat(rotMat, rotTransMat);
+                fromCVMatToGLMat(rotMat, rotTransMat, false);
 
                 //set translations into existing rot matrix
                 //rotTransMat[12] = translation_vec.at<double>(0);
@@ -202,17 +205,17 @@ public:
                 //rotTransMat[14] = translation_vec.at<double>(2);
 
                 //identity
-                cv::Mat transposeMat = cv::Mat::zeros(4, 4, CV_32F);
-                transposeMat.at<double>(0, 0) = 1;
-                transposeMat.at<double>(1, 1) = 1;
-                transposeMat.at<double>(2, 2) = 1;
-                transposeMat.at<double>(3, 3) = 1;
+                cv::Mat translate = cv::Mat::zeros(4, 4, CV_64F);
+                translate.at<double>(0, 0) = 1;
+                translate.at<double>(1, 1) = 1;
+                translate.at<double>(2, 2) = 1;
+                translate.at<double>(3, 3) = 1;
                               
-                transposeMat.at<double>(3, 0) = translation_vec.at<double>(0);
-                transposeMat.at<double>(3, 1) = translation_vec.at<double>(1);
-                transposeMat.at<double>(3, 2) = translation_vec.at<double>(2);
+                translate.at<double>(0, 3) = translation_vec.at<double>(0);
+                translate.at<double>(1, 3) = translation_vec.at<double>(1);
+                translate.at<double>(2, 3) = translation_vec.at<double>(2);
 
-                fromCVMatToGLMat(transposeMat, rotTransMat);
+                fromCVMatToGLMat(translate, rotTransMat, false);
 
                 std::cout << "finalMat\n";
                     for (int j = 0; j < 4; j++)
@@ -239,7 +242,7 @@ public:
             std::cout << "make sure to capture calibration images first by loading them from harddisk or capturing them\n";
             return;
         }
-        cv::calibrateCamera(initial_objectPoints, initial_imgPoints, cameraSize, cameraMatrix, dist_coeffs, initial_rotation_vectors,initial_translation_vectors);
+        cv::calibrateCamera(initial_objectPoints, initial_imgPoints, cameraSize, cameraMatrix, dist_coeffs, initial_rotation_vectors,initial_translation_vectors, cv::CALIB_ZERO_TANGENT_DIST);
         fromCVPerspToGLProj(cameraMatrix, cameraProjMat);
         cameraMatKnown = true;
 
