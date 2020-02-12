@@ -57,7 +57,7 @@ constexpr std::string_view axisVertexShaderSource =
     "\n"
     "void main()\n"
     "{\n"
-    "    gl_Position = cameraMat * rotTransMat * vec4(position, 1.0);\n"
+    "    gl_Position = transpose(cameraMat) * transpose(rotTransMat) * vec4(position * 0.1f, 1.0);\n"
     "    out_color = vec4(color, 1.0);\n"
     "}\n";
 
@@ -214,7 +214,7 @@ int main(int argc, char* argv[]) {
                     calibrateFrame = true;
                     break;
                 case SDLK_r:
-                    if (ui->CalibrationDirectoryPath != "")
+                    if (std::strcmp(ui->CalibrationDirectoryPath, "") != 0)
                         calibration.LoadFromSaved(ui->CalibrationDirectoryPath);
                     calibration.CalcCameraMat(screenSize);
                     calibration.PrintResults();
@@ -267,7 +267,7 @@ int main(int argc, char* argv[]) {
                 firstFrame = false;
 
                 axisPipeline->setUniform("rotTransMat", rotTransMat);
-                axisPipeline->setUniform("cameraMat", calibration.cameraMat);
+                axisPipeline->setUniform("cameraMat", calibration.cameraProjMat);
 
                 axis->draw();
            // }

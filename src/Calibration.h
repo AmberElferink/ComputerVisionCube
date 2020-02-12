@@ -31,7 +31,7 @@ static void extendMat3ToMat4(cv::Mat &cvMat)
 }
 
 // copies Mat4 from opencv to opengl (float[16]) mat
-static void fromCVMatToGLMat(cv::Mat cvMat, mat4& glMat) {
+static void fromCVMatToGLMat(cv::Mat& cvMat, mat4& glMat) {
     // convert mat to correct type (float 1 channel)
     if (cvMat.type() != CV_32FC1) {
         int type = cvMat.type();
@@ -57,7 +57,7 @@ static void fromCVMatToGLMat(cv::Mat cvMat, mat4& glMat) {
     cvMat = cvToGl * cvMat;
     cv::Mat transposeMat = cv::Mat::zeros(4, 4, CV_32F);
     cv::transpose(cvMat, transposeMat);
-    
+
     memcpy(glMat, transposeMat.data, 16 * sizeof(float));
 }
 
@@ -68,7 +68,7 @@ static void fromCVPerspToGLProj(cv::Mat cvMat, mat4& glMat) {
     double cy = cvMat.at<double>(1, 2);
 
     // Infinite projection
-    glMat[0] = fx / cx;
+    glMat[0] = -fx / cx;
     glMat[1] = 0.0f;
     glMat[2] = 0.0f;
     glMat[3] = 0.0f;
@@ -97,7 +97,7 @@ static void fromCVPerspToGLProj(cv::Mat cvMat, mat4& glMat) {
 class Calibration {
   public:
     cv::Mat cameraMatrix; // empty until calibration is complete
-    mat4 cameraMat;
+    mat4 cameraProjMat;
 
     bool cameraMatKnown = false;
 
@@ -165,7 +165,7 @@ public:
         }
     }
 
-    void DetectPattern(cv::Mat& frame, const bool addImage, const bool drawCalibrationColors = true)
+    void DetectPattern(cv::Mat frame, const bool addImage, const bool drawCalibrationColors = true)
     {
         bool chessBoardDetected = cv::findChessboardCorners(frame, patternSize, imgPoints, cv::CALIB_CB_ADAPTIVE_THRESH + cv::CALIB_CB_NORMALIZE_IMAGE + cv::CALIB_CB_FAST_CHECK);
 
@@ -183,47 +183,25 @@ public:
     //update the rotation mat. Returns true if correctly updated.
      bool UpdateRotTransMat(cv::Size cameraSize, mat4& rotTransMat, bool usePrevFrame) {
         if (cameraMatKnown) {
-            if (imgPoints.size() > 0)
+            if (!imgPoints.empty())
             {
                 // calibrateCamera, when cameraMat and an approximation is already known
-                cv::solvePnP(objp, imgPoints, cameraMatrix, dist_coeffs, rotation_vec, translation_vec, usePrevFrame);
-                cv::Mat rotMat = rotation_vec;
-                //rotMat.at<double>(0) = rotation_vec.at<double>(1);
-                //rotMat.at<double>(1) = rotation_vec.at<double>(0);
-                //rotMat.at<double>(2) = rotation_vec.at<double>(2);
+                try {
+                    cv::solvePnP(objp, imgPoints, cameraMatrix, dist_coeffs, rotation_vec, translation_vec, usePrevFrame);
+                } catch (cv::Exception& e) {
+                    return false;
+                }
 
+                cv::Mat rotMat = cv::Mat::eye(3, 3, rotation_vec.type());
                 cv::Rodrigues(rotation_vec, rotMat);
+                cv::Mat T = cv::Mat::eye(4, 4, rotMat.type()); // T is 4x4
+                T( cv::Range(0,3), cv::Range(0,3) ) = rotMat * 1; // copies R into T
+                T( cv::Range(0,3), cv::Range(3,4) ) = translation_vec * -1; // copies tvec into T
 
-                fromCVMatToGLMat(rotMat, rotTransMat);
-
-                //set translations into existing rot matrix
-                //rotTransMat[12] = translation_vec.at<double>(0);
-                //rotTransMat[13] = translation_vec.at<double>(1);
-                //rotTransMat[14] = translation_vec.at<double>(2);
-
-                //identity
-                cv::Mat transposeMat = cv::Mat::zeros(4, 4, CV_32F);
-                transposeMat.at<double>(0, 0) = 1;
-                transposeMat.at<double>(1, 1) = 1;
-                transposeMat.at<double>(2, 2) = 1;
-                transposeMat.at<double>(3, 3) = 1;
-                              
-                transposeMat.at<double>(3, 0) = translation_vec.at<double>(0);
-                transposeMat.at<double>(3, 1) = translation_vec.at<double>(1);
-                transposeMat.at<double>(3, 2) = translation_vec.at<double>(2);
-
-                fromCVMatToGLMat(transposeMat, rotTransMat);
-
-                std::cout << "finalMat\n";
-                    for (int j = 0; j < 4; j++)
-                    {
-                        for (int i = 0; i < 4; i++) {
-                            std::cout << rotTransMat[i + j * 4] << ", ";
-                        
-                        }
-                        std::cout << "\n";
-                    }
-                    std::cout << "\n";
+                for (int i = 0; i < 16; ++i)
+                {
+                    rotTransMat[i] = T.at<double>(i);
+                }
                 return true;
             }
         }
@@ -245,7 +223,7 @@ public:
 
         std::cout << "printing opengl cameramat result:\n";
         for (int i = 0; i < 16; i++) {
-            std::cout << cameraMat[i] << ", ";
+            std::cout << cameraProjMat[i] << ", ";
         }
         std::cout << "\n";
     }
