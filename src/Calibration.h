@@ -28,6 +28,7 @@ class Calibration {
   std::vector<std::unique_ptr<Texture>> CalibImages;
 
   private:
+    cv::Size cameraResolution_;
     cv::Size patternSize_;
     // these values are for the extrinsics, so they only contain info on the
     // current frame.
@@ -46,13 +47,12 @@ class Calibration {
 
 public:
     /// calibration with chessboard pattern. PatternWidth and height are the inner corners (squares - 1)
-    Calibration(const cv::Size& patternSize, float sideSquare);
+    Calibration(const cv::Size& patternSize, const cv::Size& cameraResolution, float sideSquare);
     void LoadFromDirectory(const std::string& path);
     bool DetectPattern(cv::Mat frame, bool addImage, bool drawCalibrationColors = true);
     /// update the rotation mat. Returns true if correctly updated.
-    bool UpdateRotTransMat(const cv::Size& cameraSize, mat4& rotTransMat, bool usePrevFrame);
+    bool UpdateRotTransMat(mat4& rotTransMat, bool usePrevFrame);
     /// get the camera matrix via opencv and copy it to a float16 mat4.
     /// automatically also updates rotation and translation vectors
-    void CalcCameraMat(const cv::Size& cameraSize);
-    void PrintResults();
+    void CalcCameraMat();
 };

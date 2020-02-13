@@ -144,11 +144,9 @@ int main(int argc, char* argv[]) {
                      videoSourceIndex);
         return EXIT_FAILURE;
     }
-    uint32_t screenWidth = videoSource.get(cv::CAP_PROP_FRAME_WIDTH);
-    uint32_t screenHeight = videoSource.get(cv::CAP_PROP_FRAME_HEIGHT);
-    cv::Size screenSize = cv::Size(screenWidth, screenHeight);
+    cv::Size screenSize = cv::Size(videoSource.get(cv::CAP_PROP_FRAME_WIDTH), videoSource.get(cv::CAP_PROP_FRAME_HEIGHT));
 
-    auto renderer = Renderer::create("Calibration", screenWidth, screenHeight);
+    auto renderer = Renderer::create("Calibration", screenSize.width, screenSize.height);
     if (!renderer) {
         std::fprintf(stderr, "Failed to initialize renderer\n");
         return EXIT_FAILURE;
@@ -165,8 +163,8 @@ int main(int argc, char* argv[]) {
 
     // pipelines
     Pipeline::CreateInfo fullScreenPipelineInfo;
-    fullScreenPipelineInfo.ViewportWidth = screenWidth;
-    fullScreenPipelineInfo.ViewportHeight = screenHeight;
+    fullScreenPipelineInfo.ViewportWidth = screenSize.width;
+    fullScreenPipelineInfo.ViewportHeight = screenSize.height;
     fullScreenPipelineInfo.VertexShaderSource = vertexShaderSource;
     fullScreenPipelineInfo.FragmentShaderSource = fragmentShaderSource;
     fullScreenPipelineInfo.DebugName = "fullscreen blit";
@@ -177,8 +175,8 @@ int main(int argc, char* argv[]) {
     }
 
     Pipeline::CreateInfo axisPipelineInfo;
-    axisPipelineInfo.ViewportWidth = screenWidth;
-    axisPipelineInfo.ViewportHeight = screenHeight;
+    axisPipelineInfo.ViewportWidth = screenSize.width;
+    axisPipelineInfo.ViewportHeight = screenSize.height;
     axisPipelineInfo.VertexShaderSource = axisVertexShaderSource;
     axisPipelineInfo.FragmentShaderSource = axisFragmentShaderSource;
     axisPipelineInfo.DebugName = "axis";
@@ -189,8 +187,8 @@ int main(int argc, char* argv[]) {
     }
 
     Pipeline::CreateInfo cubePipelineInfo;
-    cubePipelineInfo.ViewportWidth = screenWidth;
-    cubePipelineInfo.ViewportHeight = screenHeight;
+    cubePipelineInfo.ViewportWidth = screenSize.width;
+    cubePipelineInfo.ViewportHeight = screenSize.height;
     cubePipelineInfo.VertexShaderSource = cubeVertexShaderSource;
     cubePipelineInfo.FragmentShaderSource = cubeFragmentShaderSource;
     cubePipelineInfo.DebugName = "cube";
@@ -215,7 +213,7 @@ int main(int argc, char* argv[]) {
 
     auto objectPass = RenderPass::create(passInfo);
 
-    auto texture = Texture::create(screenWidth, screenHeight);
+    auto texture = Texture::create(screenSize.width, screenSize.height);
     if (!texture) {
         std::fprintf(stderr, "Failed to create camera texture\n");
         return EXIT_FAILURE;
@@ -227,7 +225,7 @@ int main(int argc, char* argv[]) {
     bool calibrateFrame = false;
     SDL_Event event;
 
-    Calibration calibration(patternSize, sideSquareM);
+    Calibration calibration(patternSize, screenSize, sideSquareM);
     int calibFileCounter = 0;
 
     bool saveNextImage = false;
@@ -266,8 +264,6 @@ int main(int argc, char* argv[]) {
                 case SDLK_r:
                     if (std::strcmp(ui->CalibrationDirectoryPath, "") != 0)
                         calibration.LoadFromDirectory(ui->CalibrationDirectoryPath);
-                    calibration.CalcCameraMat(screenSize);
-                    calibration.PrintResults();
                     break;
                 case SDLK_s:
                     calibFileName = std::string(ui->CalibrationDirectoryPath) + "calib" + std::to_string(calibFileCounter) + ".png";
@@ -301,7 +297,7 @@ int main(int argc, char* argv[]) {
         texture->upload(frame);
         cubePipeline->setUniform( "lightPos", lightPos);
         bool drawObjects = false;
-        if (calibration.UpdateRotTransMat(screenSize, rotTransMat, !firstFrame)) {
+        if (calibration.UpdateRotTransMat(rotTransMat, !firstFrame)) {
             axisPipeline->setUniform("rotTransMat", rotTransMat);
             axisPipeline->setUniform("cameraMat", calibration.CameraProjMat);
             cubePipeline->setUniform( "rotTransMat", rotTransMat);
@@ -325,7 +321,7 @@ int main(int argc, char* argv[]) {
             cube->draw();
         }
 
-        ui->draw(renderer->getNativeWindowHandle(), calibration, screenWidth, screenHeight, rotTransMat, lightPos);
+        ui->draw(renderer->getNativeWindowHandle(), calibration, screenSize.width, screenSize.height, rotTransMat, lightPos);
         renderer->swapBuffers();
     }
     return EXIT_SUCCESS;

@@ -38,12 +38,13 @@ void fromCVPerspToGLProj(cv::Mat cvMat, mat4 &glMat) {
     glMat[15] = 0.0f;
 }
 
-Calibration::Calibration(const cv::Size& patternSize, float sideSquare)
+Calibration::Calibration(const cv::Size& patternSize, const cv::Size& cameraResolution, float sideSquare)
     : CameraMatKnown(false)
     , CameraMatrix(cv::Mat::eye(3, 3, CV_64F))
     // Identity matrix
     , CameraProjMat{1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f}
     , patternSize_(patternSize)
+    , cameraResolution_(cameraResolution)
     , objectSpacePoints_(patternSize.width * patternSize.height)
     , DistortionCoefficients(cv::Mat::zeros(8, 1, CV_64F))
 {
@@ -87,6 +88,7 @@ void Calibration::LoadFromDirectory(const std::string &path)
         }
         calibFileCounter++;
     }
+    CalcCameraMat();
 }
 
 bool Calibration::DetectPattern(cv::Mat frame, bool addImage, bool drawCalibrationColors)
@@ -102,7 +104,7 @@ bool Calibration::DetectPattern(cv::Mat frame, bool addImage, bool drawCalibrati
     return chessBoardDetected;
 }
 
-bool Calibration::UpdateRotTransMat(const cv::Size& cameraSize, mat4 &rotTransMat, bool usePrevFrame)
+bool Calibration::UpdateRotTransMat(mat4 &rotTransMat, bool usePrevFrame)
 {
     if (CameraMatKnown) {
         if (!imageSpacePoints_.empty())
@@ -130,7 +132,7 @@ bool Calibration::UpdateRotTransMat(const cv::Size& cameraSize, mat4 &rotTransMa
     return false;
 }
 
-void Calibration::CalcCameraMat(const cv::Size& cameraSize)
+void Calibration::CalcCameraMat()
 {
     if (initialImageSpacePoints_.empty())
     {
@@ -138,19 +140,7 @@ void Calibration::CalcCameraMat(const cv::Size& cameraSize)
                      "them from hard disk or capturing them\n";
         return;
     }
-    cv::calibrateCamera(initialObjectSpacetPoints_, initialImageSpacePoints_, cameraSize, CameraMatrix, DistortionCoefficients, InitialRotationVectors, InitialTranslationVectors);
+    cv::calibrateCamera(initialObjectSpacetPoints_, initialImageSpacePoints_, cameraResolution_, CameraMatrix, DistortionCoefficients, InitialRotationVectors, InitialTranslationVectors);
     fromCVPerspToGLProj(CameraMatrix, CameraProjMat);
     CameraMatKnown = true;
-}
-
-void Calibration::PrintResults()
-{
-    std::cout << "camera matrix:\n";
-    std::cout << CameraMatrix << "\n";
-    std::cout << "rotation vec:\n";
-    std::cout << InitialRotationVectors << "\n";
-    std::cout << "translation vec:\n";
-    std::cout << InitialTranslationVectors << "\n";
-    std::cout << "distorition coeffs\n";
-    std::cout << DistortionCoefficients << "\n";
 }

@@ -91,7 +91,6 @@ void Ui::draw(SDL_Window *window, Calibration &calibration, int cameraWidth, int
                     if (ImGui::Button("Calibrate Cameras (R key)")) {
                         if (strcmp(CalibrationDirectoryPath, "")!=0)
                             calibration.LoadFromDirectory(CalibrationDirectoryPath);
-                        calibration.CalcCameraMat(cv::Size(cameraWidth, cameraHeight));
                     }
                 }
 
