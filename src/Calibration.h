@@ -49,6 +49,7 @@ public:
     /// calibration with chessboard pattern. PatternWidth and height are the inner corners (squares - 1)
     Calibration(const cv::Size& patternSize, const cv::Size& cameraResolution, float sideSquare);
     void LoadFromDirectory(const std::string& path);
+    void TakeCapture(const std::string& path, const cv::Mat& frame);
     bool DetectPattern(cv::Mat frame, bool addImage, bool drawCalibrationColors = true);
     /// update the rotation mat. Returns true if correctly updated.
     bool UpdateRotTransMat(mat4& rotTransMat, bool usePrevFrame);

@@ -24,7 +24,7 @@ public:
 
   void processEvent(const SDL_Event& event);
   void draw(SDL_Window *window, Calibration &calibration, int cameraWidth, int cameraHeight, float *objectMatrix,
-            float *lightPos);
+            float *lightPos, bool& saveNextImage);
 
 private:
   explicit Ui(std::unique_ptr<ImGuiContext, ImGuiDestroyer>&& context);

@@ -74,7 +74,7 @@ void Ui::processEvent(const SDL_Event& event) {
     ImGui_ImplSDL2_ProcessEvent(&event);
 }
 
-void Ui::draw(SDL_Window *window, Calibration &calibration, int cameraWidth, int cameraHeight, float *objectMatrix, float *lightPos)
+void Ui::draw(SDL_Window *window, Calibration &calibration, int cameraWidth, int cameraHeight, float *objectMatrix, float *lightPos, bool& saveNextImage)
 {
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplSDL2_NewFrame(window);
@@ -88,8 +88,12 @@ void Ui::draw(SDL_Window *window, Calibration &calibration, int cameraWidth, int
                     ImGui::InputText("##Calibration files", CalibrationDirectoryPath, sizeof(CalibrationDirectoryPath));
                     ImGui::SameLine();
                     show_save_dialog_ = ImGui::Button("...##SelectDirectory");
+                    if (ImGui::Button("Take Capture (S key)")) {
+                        if (strcmp(CalibrationDirectoryPath, "") != 0)
+                            saveNextImage = true;
+                    }
                     if (ImGui::Button("Calibrate Cameras (R key)")) {
-                        if (strcmp(CalibrationDirectoryPath, "")!=0)
+                        if (strcmp(CalibrationDirectoryPath, "") != 0)
                             calibration.LoadFromDirectory(CalibrationDirectoryPath);
                     }
                 }

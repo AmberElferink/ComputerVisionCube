@@ -91,6 +91,22 @@ void Calibration::LoadFromDirectory(const std::string &path)
     CalcCameraMat();
 }
 
+void Calibration::TakeCapture(const std::string &path, const cv::Mat& frame) {
+
+    auto calibFileName = "calib" + std::to_string(CalibImages.size()) + ".png";
+    if (!cv::imwrite(path + calibFileName, frame)) {
+        std::cerr << "Failed to save " << path + calibFileName << std::endl;
+    }
+    CalibImageNames.push_back(calibFileName);
+    auto texture = Texture::create(frame.cols, frame.rows);
+    if (texture) {
+        texture->upload(frame);
+    }
+    CalibImages.emplace_back(std::move(texture));
+    std::cout << "Saved " << path + calibFileName << std::endl;
+
+}
+
 bool Calibration::DetectPattern(cv::Mat frame, bool addImage, bool drawCalibrationColors)
 {
     bool chessBoardDetected = cv::findChessboardCorners(frame, patternSize_, imageSpacePoints_, cv::CALIB_CB_ADAPTIVE_THRESH + cv::CALIB_CB_NORMALIZE_IMAGE + cv::CALIB_CB_FAST_CHECK);

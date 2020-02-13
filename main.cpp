@@ -226,12 +226,10 @@ int main(int argc, char* argv[]) {
     SDL_Event event;
 
     Calibration calibration(patternSize, screenSize, sideSquareM);
-    int calibFileCounter = 0;
 
     bool saveNextImage = false;
     std::string calibFileName;
 
-    bool cameraMatKnown = false;
     //clang-format off
     mat4 rotTransMat{
         1, 0, 0, 0,
@@ -266,8 +264,6 @@ int main(int argc, char* argv[]) {
                         calibration.LoadFromDirectory(ui->CalibrationDirectoryPath);
                     break;
                 case SDLK_s:
-                    calibFileName = std::string(ui->CalibrationDirectoryPath) + "calib" + std::to_string(calibFileCounter) + ".png";
-                    calibFileCounter++;
                     saveNextImage = true;
                     break;
                 }
@@ -277,18 +273,14 @@ int main(int argc, char* argv[]) {
         // Get frame from webcam
         videoSource >> frame;
         if (frame.empty()) {
-            running = false;
             std::fprintf(stderr,
                          "Camera returned an empty frame... Quitting.\n");
             return EXIT_FAILURE;
         }
 
         if (saveNextImage) {
-            if (!cv::imwrite(calibFileName, frame)) {
-                std::cout << "failed to save file\n";
-            }
+            calibration.TakeCapture(ui->CalibrationDirectoryPath, frame);
             saveNextImage = false;
-            std::cout << "image saved\n";
         }
 
         calibration.DetectPattern(frame, calibrateFrame,
@@ -321,7 +313,7 @@ int main(int argc, char* argv[]) {
             cube->draw();
         }
 
-        ui->draw(renderer->getNativeWindowHandle(), calibration, screenSize.width, screenSize.height, rotTransMat, lightPos);
+        ui->draw(renderer->getNativeWindowHandle(), calibration, screenSize.width, screenSize.height, rotTransMat, lightPos, saveNextImage);
         renderer->swapBuffers();
     }
     return EXIT_SUCCESS;
