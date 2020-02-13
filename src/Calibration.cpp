@@ -45,7 +45,7 @@ Calibration::Calibration(const cv::Size& patternSize, float sideSquare)
     , CameraProjMat{1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f}
     , patternSize_(patternSize)
     , objectSpacePoints_(patternSize.width * patternSize.height)
-    , distortionCoefficients_(cv::Mat::zeros(8, 1, CV_64F))
+    , DistortionCoefficients(cv::Mat::zeros(8, 1, CV_64F))
 {
     initialObjectSpacetPoints_.reserve(10 * objectSpacePoints_.size());
     initialImageSpacePoints_.reserve(10 * objectSpacePoints_.size());
@@ -109,7 +109,7 @@ bool Calibration::UpdateRotTransMat(const cv::Size& cameraSize, mat4 &rotTransMa
         {
             // calibrateCamera, when cameraMat and an approximation is already known
             try {
-                cv::solvePnP(objectSpacePoints_, imageSpacePoints_, CameraMatrix, distortionCoefficients_, rotationVec_, translationVec_, usePrevFrame);
+                cv::solvePnP(objectSpacePoints_, imageSpacePoints_, CameraMatrix, DistortionCoefficients, rotationVec_, translationVec_, usePrevFrame);
             } catch (cv::Exception& e) {
                 return false;
             }
@@ -138,7 +138,7 @@ void Calibration::CalcCameraMat(const cv::Size& cameraSize)
                      "them from hard disk or capturing them\n";
         return;
     }
-    cv::calibrateCamera(initialObjectSpacetPoints_, initialImageSpacePoints_, cameraSize, CameraMatrix, distortionCoefficients_, InitialRotationVectors, InitialTranslationVectors);
+    cv::calibrateCamera(initialObjectSpacetPoints_, initialImageSpacePoints_, cameraSize, CameraMatrix, DistortionCoefficients, InitialRotationVectors, InitialTranslationVectors);
     fromCVPerspToGLProj(CameraMatrix, CameraProjMat);
     CameraMatKnown = true;
 }
@@ -152,5 +152,5 @@ void Calibration::PrintResults()
     std::cout << "translation vec:\n";
     std::cout << InitialTranslationVectors << "\n";
     std::cout << "distorition coeffs\n";
-    std::cout << distortionCoefficients_ << "\n";
+    std::cout << DistortionCoefficients << "\n";
 }

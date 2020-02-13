@@ -5,7 +5,6 @@
 #include <examples/imgui_impl_sdl.h>
 #include <examples/imgui_impl_opengl3.h>
 #include <ImGuiFileBrowser.h>
-#include <cstring>
 
 #include "Calibration.h"
 #include "Texture.h"
@@ -101,6 +100,12 @@ void Ui::draw(SDL_Window *window, Calibration &calibration, int cameraWidth, int
                     ImGui::InputFloat4("##camera_matrix_1", calibration.CameraProjMat + 4);
                     ImGui::InputFloat4("##camera_matrix_2", calibration.CameraProjMat + 8);
                     ImGui::InputFloat4("##camera_matrix_3", calibration.CameraProjMat + 12);
+                }
+
+                if (ImGui::CollapsingHeader("Distortion Coefficients")) {
+                    for (uint32_t i = 0; i < calibration.DistortionCoefficients.rows; ++i) {
+                        ImGui::InputDouble(("##distortion" + std::to_string(i)).c_str(), &calibration.DistortionCoefficients.at<double>(i, 0));
+                    }
                 }
 
                 uint32_t numFiles = std::min(

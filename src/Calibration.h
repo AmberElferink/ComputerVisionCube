@@ -22,6 +22,8 @@ class Calibration {
   /// list of all vec3s, one for each calibrated image. Not updated after that
   cv::Mat InitialRotationVectors;
 
+  cv::Mat DistortionCoefficients;
+
   std::vector<std::string> CalibImageNames;
   std::vector<std::unique_ptr<Texture>> CalibImages;
 
@@ -41,7 +43,6 @@ class Calibration {
     std::vector<std::vector<cv::Vec3f>> initialObjectSpacetPoints_;
     /// in each frame the capture is different, so different image coordinates for each frame
     std::vector<std::vector<cv::Point2f>> initialImageSpacePoints_;
-    cv::Mat distortionCoefficients_;
 
 public:
     /// calibration with chessboard pattern. PatternWidth and height are the inner corners (squares - 1)
