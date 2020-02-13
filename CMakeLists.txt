@@ -17,6 +17,8 @@ set(SOURCE_FILES
   src/Pipeline.h
   src/RenderPass.cpp
   src/RenderPass.h
+  src/Texture.cpp
+  src/Texture.h
   src/Ui.cpp
   src/Ui.h
   main.cpp

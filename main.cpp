@@ -1,6 +1,5 @@
 #include <SDL2/SDL.h>
 #include <cstdlib>
-#include <glad/glad.h>
 #include <iostream>
 #include <opencv2/core/opengl.hpp>
 
@@ -9,6 +8,7 @@
 
 #include <opencv2/highgui.hpp> // saving images
 #include <Ui.h>
+#include <Texture.h>
 
 #include "Calibration.h"
 #include "IndexedMesh.h"
@@ -42,7 +42,7 @@ constexpr std::string_view fragmentShaderSource =
     "uniform sampler2D ourTexture;\n"
     "void main()\n"
     "{\n"
-    "    color = texture(ourTexture, textureCoordinate).bgra;\n"
+    "    color = texture(ourTexture, textureCoordinate);\n"
     "}\n";
 
 constexpr std::string_view axisVertexShaderSource =
@@ -157,13 +157,11 @@ int main(int argc, char* argv[]) {
     passInfo.DebugName = "full screen quad";
     auto fullscreenPass = RenderPass::create(passInfo);
 
-    unsigned int texture;
-    glGenTextures(1, &texture);
-    glBindTexture(GL_TEXTURE_2D, texture);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    auto texture = Texture::create();
+    if (!texture) {
+        std::fprintf(stderr, "Failed to create camera texture\n");
+        return EXIT_FAILURE;
+    }
 
     cv::Mat frame;
 
@@ -240,11 +238,10 @@ int main(int argc, char* argv[]) {
         calibration.DetectPattern(frame, calibrateFrame,
                                   true); // write calibration colors to image
 
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, screenWidth, screenHeight, 0,
-                     GL_RGB, GL_UNSIGNED_BYTE, frame.data);
+        texture->upload(frame);
 
         fullscreenPass->bind();
-        glBindTexture(GL_TEXTURE_2D, texture);
+        texture->bind();
         fullscreenPipeline->bind();
 
         // tell it you want to draw 2 triangles (2 vertices)
