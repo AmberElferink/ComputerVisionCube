@@ -78,34 +78,57 @@ void Ui::draw(SDL_Window* window, Calibration& calibration, int cameraWidth, int
     ImGui_ImplSDL2_NewFrame(window);
     ImGui::NewFrame();
 
-    if (ImGui::Begin("Configuration ")) {
-        ImGui::Text("Offline calibration directory:");
-        ImGui::InputText("##Offline calibration files", CalibrationDirectoryPath, sizeof(CalibrationDirectoryPath));
-        ImGui::SameLine();
-        show_save_dialog_ = ImGui::Button("...##SelectDirectory");
-        if (ImGui::Button("Calibrate Cameras (R key)")) {
-            if (strcmp(CalibrationDirectoryPath, "") != 0)
-                calibration.LoadFromSaved(CalibrationDirectoryPath);
-            calibration.CalcCameraMat(cv::Size(cameraWidth, cameraHeight));
+    ImGui::SetNextWindowBgAlpha(0.4f);
+    if (ImGui::Begin("Configuration", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        if (ImGui::BeginTabBar("Tab bar")) {
+            if (ImGui::BeginTabItem("Offline")) {
+                if (ImGui::CollapsingHeader("Load saved calibration", ImGuiTreeNodeFlags_DefaultOpen)) {
+                    ImGui::InputText("##Calibration files", CalibrationDirectoryPath, sizeof(CalibrationDirectoryPath));
+                    ImGui::SameLine();
+                    show_save_dialog_ = ImGui::Button("...##SelectDirectory");
+                    if (ImGui::Button("Calibrate Cameras (R key)")) {
+                        if (strcmp(CalibrationDirectoryPath, "")!=0)
+                            calibration.LoadFromDirectory(CalibrationDirectoryPath);
+                        calibration.CalcCameraMat(cv::Size(cameraWidth, cameraHeight));
+                    }
+                }
 
-            calibration.PrintResults();
+                if (ImGui::CollapsingHeader("Camera Matrix")) {
+                    ImGui::InputFloat4("##camera_matrix_0", calibration.CameraProjMat + 0);
+                    ImGui::InputFloat4("##camera_matrix_1", calibration.CameraProjMat + 4);
+                    ImGui::InputFloat4("##camera_matrix_2", calibration.CameraProjMat + 8);
+                    ImGui::InputFloat4("##camera_matrix_3", calibration.CameraProjMat + 12);
+                }
+
+                uint32_t numFiles = std::min(
+                    static_cast<uint32_t>(std::min(calibration.CalibImages.size(), calibration.CalibImageNames.size())),
+                    static_cast<uint32_t>(std::min(calibration.InitialRotationVectors.size[0], calibration.InitialTranslationVectors.size[0]))
+                );
+                if (numFiles > 0 && ImGui::CollapsingHeader(("Calibration Files (" + std::to_string(numFiles) + ")").c_str())) {
+                    for (uint32_t i = 0; i < numFiles; ++i)
+                    {
+                        if (ImGui::CollapsingHeader(calibration.CalibImageNames[i].c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
+                            ImGui::InputScalarN(("rvec##rvec" + std::to_string(i)).c_str(), ImGuiDataType_Double, calibration.InitialRotationVectors.row(i).data, 3, nullptr, nullptr, "%.5f", ImGuiInputTextFlags_ReadOnly);
+                            ImGui::InputScalarN(("tvec##tvec" + std::to_string(i)).c_str(), ImGuiDataType_Double, calibration.InitialTranslationVectors.row(i).data, 3, nullptr, nullptr, "%.5f", ImGuiInputTextFlags_ReadOnly);
+                        }
+                    }
+                }
+
+                ImGui::EndTabItem();
+            }
+            if (ImGui::BeginTabItem("Online")) {
+
+                if (ImGui::CollapsingHeader("Object Matrix", ImGuiTreeNodeFlags_DefaultOpen)) {
+                    ImGui::InputFloat4("##object_matrix_0", objectMatrix + 0);
+                    ImGui::InputFloat4("##object_matrix_1", objectMatrix + 4);
+                    ImGui::InputFloat4("##object_matrix_2", objectMatrix + 8);
+                    ImGui::InputFloat4("##object_matrix_3", objectMatrix + 12);
+                }
+
+                ImGui::EndTabItem();
+            }
+            ImGui::EndTabBar();
         }
-        if (ImGui::BeginChild("Camera Matrix", ImVec2(400, 6 * ImGui::GetTextLineHeightWithSpacing()))) {
-            ImGui::Text("Camera Matrix");
-            ImGui::InputFloat4("##camera_matrix_0", calibration.CameraProjMat + 0);
-            ImGui::InputFloat4("##camera_matrix_1", calibration.CameraProjMat + 4);
-            ImGui::InputFloat4("##camera_matrix_2", calibration.CameraProjMat + 8);
-            ImGui::InputFloat4("##camera_matrix_3", calibration.CameraProjMat + 12);
-        }
-        ImGui::EndChild();
-        if (ImGui::BeginChild("Object Matrix", ImVec2(400, 6 * ImGui::GetTextLineHeightWithSpacing()))) {
-            ImGui::Text("Object Matrix");
-            ImGui::InputFloat4("##object_matrix_0", objectMatrix + 0);
-            ImGui::InputFloat4("##object_matrix_1", objectMatrix + 4);
-            ImGui::InputFloat4("##object_matrix_2", objectMatrix + 8);
-            ImGui::InputFloat4("##object_matrix_3", objectMatrix + 12);
-        }
-        ImGui::EndChild();
     }
     ImGui::End();
 

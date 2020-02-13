@@ -207,7 +207,7 @@ int main(int argc, char* argv[]) {
                     break;
                 case SDLK_r:
                     if (std::strcmp(ui->CalibrationDirectoryPath, "") != 0)
-                        calibration.LoadFromSaved(ui->CalibrationDirectoryPath);
+                        calibration.LoadFromDirectory(ui->CalibrationDirectoryPath);
                     calibration.CalcCameraMat(screenSize);
                     calibration.PrintResults();
                     break;

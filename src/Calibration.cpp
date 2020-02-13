@@ -42,7 +42,7 @@ Calibration::Calibration(const cv::Size& patternSize, float sideSquare)
     , objectSpacePoints_(patternSize.width * patternSize.height)
     , distortionCoefficients_(cv::Mat::zeros(8, 1, CV_64F))
 {
-    initialObjectSpacetPoints.reserve(10 * objectSpacePoints_.size());
+    initialObjectSpacetPoints_.reserve(10 * objectSpacePoints_.size());
     initialImageSpacePoints_.reserve(10 * objectSpacePoints_.size());
     for (int j = 0; j < patternSize_.height; j++)
     {
@@ -54,8 +54,10 @@ Calibration::Calibration(const cv::Size& patternSize, float sideSquare)
     }
 }
 
-void Calibration::LoadFromSaved(const std::string &path)
+void Calibration::LoadFromDirectory(const std::string &path)
 {
+    CalibImages.clear();
+    CalibImageNames.clear();
     int calibFileCounter = 0;
     bool keepReading = true;
     while (keepReading) {
@@ -63,23 +65,32 @@ void Calibration::LoadFromSaved(const std::string &path)
         calibFileCounter++;
         cv::Mat image = cv::imread(calibFileName);
         keepReading = image.data;
-        if (keepReading)
-            DetectPattern(image, true);
+        if (keepReading) {
+            if (DetectPattern(image, true))
+            {
+                std::cout << "Loaded " << calibFileName << std::endl;
+                CalibImageNames.push_back("calib" + std::to_string(calibFileCounter) + ".png");
+                CalibImages.push_back(image);
+            }
+            else
+            {
+                std::cout << "No pattern found in " << calibFileName << std::endl;
+            }
+        }
     }
 }
 
-void Calibration::DetectPattern(cv::Mat frame, bool addImage, bool drawCalibrationColors)
+bool Calibration::DetectPattern(cv::Mat frame, bool addImage, bool drawCalibrationColors)
 {
     bool chessBoardDetected = cv::findChessboardCorners(frame, patternSize_, imageSpacePoints_, cv::CALIB_CB_ADAPTIVE_THRESH + cv::CALIB_CB_NORMALIZE_IMAGE + cv::CALIB_CB_FAST_CHECK);
 
     if (chessBoardDetected && addImage) {
-        initialObjectSpacetPoints.push_back(objectSpacePoints_); // push back the default real world positions
+        initialObjectSpacetPoints_.push_back(objectSpacePoints_); // push back the default real world positions
         initialImageSpacePoints_.push_back(imageSpacePoints_); // push back detected corner positions in 2D image
-
-        printf("calibration image added\n");
     }
     if (drawCalibrationColors)
         cv::drawChessboardCorners(frame, patternSize_, imageSpacePoints_, chessBoardDetected);
+    return chessBoardDetected;
 }
 
 bool Calibration::UpdateRotTransMat(const cv::Size& cameraSize, mat4 &rotTransMat, bool usePrevFrame)
@@ -114,19 +125,13 @@ void Calibration::CalcCameraMat(const cv::Size& cameraSize)
 {
     if (initialImageSpacePoints_.empty())
     {
-        std::cout << "make sure to capture calibration images first by loading "
+        std::cerr << "make sure to capture calibration images first by loading "
                      "them from hard disk or capturing them\n";
         return;
     }
-    cv::calibrateCamera(initialObjectSpacetPoints, initialImageSpacePoints_, cameraSize, CameraMatrix, distortionCoefficients_, initialRotationVectors_, initialTranslationVectors_);
+    cv::calibrateCamera(initialObjectSpacetPoints_, initialImageSpacePoints_, cameraSize, CameraMatrix, distortionCoefficients_, InitialRotationVectors, InitialTranslationVectors);
     fromCVPerspToGLProj(CameraMatrix, CameraProjMat);
     CameraMatKnown = true;
-
-    std::cout << "printing opengl camera matrix result:\n";
-    for (float i : CameraProjMat) {
-        std::cout << i << ", ";
-    }
-    std::cout << "\n";
 }
 
 void Calibration::PrintResults()
@@ -134,9 +139,9 @@ void Calibration::PrintResults()
     std::cout << "camera matrix:\n";
     std::cout << CameraMatrix << "\n";
     std::cout << "rotation vec:\n";
-    std::cout << initialRotationVectors_ << "\n";
+    std::cout << InitialRotationVectors << "\n";
     std::cout << "translation vec:\n";
-    std::cout << initialTranslationVectors_ << "\n";
+    std::cout << InitialTranslationVectors << "\n";
     std::cout << "distorition coeffs\n";
     std::cout << distortionCoefficients_ << "\n";
 }
