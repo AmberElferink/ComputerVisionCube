@@ -2,14 +2,12 @@
 #include <cstdlib>
 #include <glad/glad.h>
 #include <iostream>
-#include <opencv2/calib3d.hpp>
 #include <opencv2/core/opengl.hpp>
 
 #include <opencv2/videoio.hpp>
 #include <string_view>
 
 #include <opencv2/highgui.hpp> // saving images
-#include <opencv2/imgproc.hpp> //for drawing lines
 #include <Ui.h>
 
 #include "Calibration.h"
@@ -18,7 +16,7 @@
 #include "RenderPass.h"
 #include "Renderer.h"
 
-constexpr float oneSquareMm = 2.3f;
+constexpr float sideSquareM = 0.023;
 const cv::Size patternSize = cv::Size(6, 9);
 
 // just copy a glsl file in here with the vertex shader
@@ -173,7 +171,7 @@ int main(int argc, char* argv[]) {
     bool calibrateFrame = false;
     SDL_Event event;
 
-    Calibration calibration(6, 9, 23);
+    Calibration calibration(patternSize, sideSquareM);
     int calibFileCounter = 0;
 
     bool saveNextImage = false;
@@ -181,12 +179,6 @@ int main(int argc, char* argv[]) {
 
     bool cameraMatKnown = false;
     //clang-format off
-    mat4 cameraMat{
-        1, 0, 0, 0,
-        0, 1, 0, 0,
-        0, 0, 1, 0,
-        0, 0, 0, 1};
-
     mat4 rotTransMat{
         1, 0, 0, 0,
         0, 1, 0, 0,
@@ -260,17 +252,14 @@ int main(int argc, char* argv[]) {
 
         axisPipeline->bind();
 
-        if (calibration.cameraMatKnown) {
-            //if (calibration.UpdateRotTransMat(screenSize, rotTransMat, !firstFrame)) {
+        if (calibration.UpdateRotTransMat(screenSize, rotTransMat, !firstFrame)) {
+            calibration.UpdateRotTransMat(screenSize, rotTransMat, false);
+            firstFrame = false;
 
-                calibration.UpdateRotTransMat(screenSize, rotTransMat,false);
-                firstFrame = false;
+            axisPipeline->setUniform("rotTransMat", rotTransMat);
+            axisPipeline->setUniform("cameraMat", calibration.CameraProjMat);
 
-                axisPipeline->setUniform("rotTransMat", rotTransMat);
-                axisPipeline->setUniform("cameraMat", calibration.cameraProjMat);
-
-                axis->draw();
-           // }
+            axis->draw();
         }
 
         ui->draw(renderer->getNativeWindowHandle(), calibration, screenWidth, screenHeight, rotTransMat);

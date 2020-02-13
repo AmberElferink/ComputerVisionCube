@@ -17,11 +17,11 @@ void GLAPIENTRY MessageCallback([[maybe_unused]] GLenum /*source*/, GLenum type,
                                 [[maybe_unused]] GLsizei /*length*/,
                                 const GLchar *message,
                                 [[maybe_unused]] const void * /*userparam*/) {
-    fprintf(stderr,
-            "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
-            (type==GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""), type, severity,
-            message);
-    std::fflush(stderr);
+//    fprintf(stderr,
+//            "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
+//            (type==GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""), type, severity,
+//            message);
+//    std::fflush(stderr);
 }
 
 std::unique_ptr<Renderer> Renderer::create(const std::string_view &title,
