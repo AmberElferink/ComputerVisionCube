@@ -10,16 +10,13 @@
 
 #include <opencv2/highgui.hpp> // saving images
 #include <opencv2/imgproc.hpp> //for drawing lines
-
+#include <Ui.h>
 
 #include "Calibration.h"
 #include "IndexedMesh.h"
 #include "Pipeline.h"
 #include "RenderPass.h"
 #include "Renderer.h"
-
-#define CALIBRATE_FROM_SAVED
-std::string calibImageFolder =  "C:/Users/eempi/CLionProjects/INFOMCV_calibration/calibImages/";
 
 constexpr float oneSquareMm = 2.3f;
 const cv::Size patternSize = cv::Size(6, 9);
@@ -60,7 +57,7 @@ constexpr std::string_view axisVertexShaderSource =
     "\n"
     "void main()\n"
     "{\n"
-    "    gl_Position = cameraMat * rotTransMat * vec4(position, 1.0);\n"
+    "    gl_Position = transpose(cameraMat) * transpose(rotTransMat) * vec4(position * 0.1f, 1.0);\n"
     "    out_color = vec4(color, 1.0);\n"
     "}\n";
 
@@ -81,22 +78,19 @@ int main(int argc, char* argv[]) {
     }
 
     cv::ocl::setUseOpenCL(true);
-    if (!cv::ocl::haveOpenCL())
-    {
+    if (!cv::ocl::haveOpenCL()) {
         std::printf("OpenCL is not available...\n");
         return EXIT_FAILURE;
     }
 
     cv::ocl::Context context;
-    if (!context.create(cv::ocl::Device::TYPE_GPU))
-    {
+    if (!context.create(cv::ocl::Device::TYPE_GPU)) {
         std::printf("Failed creating the context...\n");
         return EXIT_FAILURE;
     }
 
     std::printf("%zu GPU devices are detected.\n", context.ndevices());
-    for (int i = 0; i < context.ndevices(); i++)
-    {
+    for (int i = 0; i < context.ndevices(); i++) {
         const cv::ocl::Device& device = context.device(i);
         std::printf("name: %s\n"
                     "available: %s\n"
@@ -107,7 +101,6 @@ int main(int argc, char* argv[]) {
                     device.imageSupport() ? "true" : "false",
                     device.OpenCL_C_Version().c_str());
     }
-
 
     cv::VideoCapture videoSource;
     if (!videoSource.open(videoSourceIndex)) {
@@ -120,6 +113,11 @@ int main(int argc, char* argv[]) {
     cv::Size screenSize = cv::Size(screenWidth, screenHeight);
 
     auto renderer = Renderer::create("Calibration", screenWidth, screenHeight);
+    if (!renderer) {
+        std::fprintf(stderr, "Failed to initialize renderer\n");
+        return EXIT_FAILURE;
+    }
+    auto ui = Ui::create(renderer->getNativeWindowHandle());
     if (!renderer) {
         std::fprintf(stderr, "Failed to initialize renderer\n");
         return EXIT_FAILURE;
@@ -182,18 +180,27 @@ int main(int argc, char* argv[]) {
     std::string calibFileName;
 
     bool cameraMatKnown = false;
-    mat4 cameraMat {
-            1, 0, 0, 0,
-            0, 1, 0, 0,
-            0, 0, 1, 0,
-            0, 0, 0, 1
-    };
+    //clang-format off
+    mat4 cameraMat{
+        1, 0, 0, 0,
+        0, 1, 0, 0,
+        0, 0, 1, 0,
+        0, 0, 0, 1};
 
+    mat4 rotTransMat{
+        1, 0, 0, 0,
+        0, 1, 0, 0,
+        0, 0, 1, 0,
+        0, 0, 0, 1};
+
+    //clang-format on
+    bool firstFrame = true;
 
     while (running) {
         calibrateFrame = false;
         // input
         while (SDL_PollEvent(&event)) {
+            ui->processEvent(event);
             switch (event.type) {
             case SDL_QUIT: // cross
                 running = false;
@@ -207,16 +214,13 @@ int main(int argc, char* argv[]) {
                     calibrateFrame = true;
                     break;
                 case SDLK_r:
-#ifdef CALIBRATE_FROM_SAVED
-                    if (calibImageFolder != "")
-                        calibration.LoadFromSaved(calibImageFolder);
-#endif
-                    calibration.CalcCameraMat(screenSize, cameraMat);
-                    
+                    if (std::strcmp(ui->CalibrationDirectoryPath, "") != 0)
+                        calibration.LoadFromSaved(ui->CalibrationDirectoryPath);
+                    calibration.CalcCameraMat(screenSize);
                     calibration.PrintResults();
                     break;
                 case SDLK_s:
-                    calibFileName = calibImageFolder + "calib" + std::to_string(calibFileCounter) + ".png";
+                    calibFileName = std::string(ui->CalibrationDirectoryPath) + "calib" + std::to_string(calibFileCounter) + ".png";
                     calibFileCounter++;
                     saveNextImage = true;
                     break;
@@ -230,22 +234,22 @@ int main(int argc, char* argv[]) {
             running = false;
             std::fprintf(stderr,
                          "Camera returned an empty frame... Quitting.\n");
-        } else {
-
-            if (saveNextImage)
-            {
-                if (!cv::imwrite(calibFileName, frame)) {
-                    std::cout << "failed to save file\n";
-                }
-                saveNextImage = false;
-                std::cout << "image saved\n";
-            }
-
-            calibration.DetectPattern(frame, calibrateFrame, true); //write calibration colors to image
-
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, screenWidth, screenHeight, 0,
-                         GL_RGB, GL_UNSIGNED_BYTE, frame.data);
+            return EXIT_FAILURE;
         }
+
+        if (saveNextImage) {
+            if (!cv::imwrite(calibFileName, frame)) {
+                std::cout << "failed to save file\n";
+            }
+            saveNextImage = false;
+            std::cout << "image saved\n";
+        }
+
+        calibration.DetectPattern(frame, calibrateFrame,
+                                  true); // write calibration colors to image
+
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, screenWidth, screenHeight, 0,
+                     GL_RGB, GL_UNSIGNED_BYTE, frame.data);
 
         fullscreenPass->bind();
         glBindTexture(GL_TEXTURE_2D, texture);
@@ -256,30 +260,20 @@ int main(int argc, char* argv[]) {
 
         axisPipeline->bind();
 
-        if(calibration.cameraMatKnown)
-        {
-            // TODO(amber): Set these matrices from what we get from opencv
+        if (calibration.cameraMatKnown) {
+            //if (calibration.UpdateRotTransMat(screenSize, rotTransMat, !firstFrame)) {
 
-            mat4 rotTransMat {
-                    1, 0, 0, 0,
-                    0, 1, 0, 0,
-                    0, 0, 1, 0,
-                    0, 0, 0, 1
-            };
+                calibration.UpdateRotTransMat(screenSize, rotTransMat,false);
+                firstFrame = false;
 
-            //fromCVMatToGLMat(calibration.)
+                axisPipeline->setUniform("rotTransMat", rotTransMat);
+                axisPipeline->setUniform("cameraMat", calibration.cameraProjMat);
 
-
-            axisPipeline->setUniform("rotTransMat", rotTransMat);
-            axisPipeline->setUniform("cameraMat", cameraMat);
-
-            axis->draw();
+                axis->draw();
+           // }
         }
 
-
-
-        renderer->DrawUi();
-
+        ui->draw(renderer->getNativeWindowHandle(), calibration, screenWidth, screenHeight, rotTransMat);
         renderer->swapBuffers();
     }
     return EXIT_SUCCESS;
