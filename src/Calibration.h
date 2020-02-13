@@ -1,9 +1,11 @@
+#include <memory>
 #include <vector>
 #include <string>
 #include <opencv2/core/mat.hpp>
 
 // mat4 is equivalent to float[16]
 typedef float mat4[16];
+class Texture;
 
 /// python code adapted and translated:
 /// https://opencv-python-tutroals.readthedocs.io/en/latest/py_tutorials/py_calib3d/py_calibration/py_calibration.html
@@ -21,7 +23,7 @@ class Calibration {
   cv::Mat InitialRotationVectors;
 
   std::vector<std::string> CalibImageNames;
-  std::vector<cv::Mat> CalibImages;
+  std::vector<std::unique_ptr<Texture>> CalibImages;
 
   private:
     cv::Size patternSize_;

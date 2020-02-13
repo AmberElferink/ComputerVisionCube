@@ -1,5 +1,4 @@
 #include "Ui.h"
-#include "Calibration.h"
 
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -7,6 +6,9 @@
 #include <examples/imgui_impl_opengl3.h>
 #include <ImGuiFileBrowser.h>
 #include <cstring>
+
+#include "Calibration.h"
+#include "Texture.h"
 
 void ImGuiDestroyer::operator()(ImGuiContext* context) const {
     ImGui::DestroyContext(context);
@@ -108,6 +110,10 @@ void Ui::draw(SDL_Window* window, Calibration& calibration, int cameraWidth, int
                     for (uint32_t i = 0; i < numFiles; ++i)
                     {
                         if (ImGui::CollapsingHeader(calibration.CalibImageNames[i].c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
+                            if (calibration.CalibImages[i])
+                            {
+                                ImGui::Image(reinterpret_cast<ImTextureID>(calibration.CalibImages[i]->getNativeHandle()), ImVec2(256, 256 / calibration.CalibImages[i]->getAspect()));
+                            }
                             ImGui::InputScalarN(("rvec##rvec" + std::to_string(i)).c_str(), ImGuiDataType_Double, calibration.InitialRotationVectors.row(i).data, 3, nullptr, nullptr, "%.5f", ImGuiInputTextFlags_ReadOnly);
                             ImGui::InputScalarN(("tvec##tvec" + std::to_string(i)).c_str(), ImGuiDataType_Double, calibration.InitialTranslationVectors.row(i).data, 3, nullptr, nullptr, "%.5f", ImGuiInputTextFlags_ReadOnly);
                         }

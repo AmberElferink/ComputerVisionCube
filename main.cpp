@@ -157,7 +157,7 @@ int main(int argc, char* argv[]) {
     passInfo.DebugName = "full screen quad";
     auto fullscreenPass = RenderPass::create(passInfo);
 
-    auto texture = Texture::create();
+    auto texture = Texture::create(screenWidth, screenHeight);
     if (!texture) {
         std::fprintf(stderr, "Failed to create camera texture\n");
         return EXIT_FAILURE;
