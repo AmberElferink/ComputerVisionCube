@@ -51,6 +51,8 @@ class IndexedMesh {
     createFullscreenQuad(const std::string_view& debug_name);
     static std::unique_ptr<IndexedMesh>
     createAxis(const std::string_view& debug_name);
+    static std::unique_ptr<IndexedMesh>
+    createCube(const std::string_view& debug_name);
 
     virtual ~IndexedMesh();
     void draw() const;

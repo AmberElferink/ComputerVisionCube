@@ -1,6 +1,5 @@
 #include <SDL2/SDL.h>
 #include <cstdlib>
-#include <glad/glad.h>
 #include <iostream>
 #include <opencv2/core/opengl.hpp>
 
@@ -9,6 +8,7 @@
 
 #include <opencv2/highgui.hpp> // saving images
 #include <Ui.h>
+#include <Texture.h>
 
 #include "Calibration.h"
 #include "IndexedMesh.h"
@@ -42,7 +42,7 @@ constexpr std::string_view fragmentShaderSource =
     "uniform sampler2D ourTexture;\n"
     "void main()\n"
     "{\n"
-    "    color = texture(ourTexture, textureCoordinate).bgra;\n"
+    "    color = texture(ourTexture, textureCoordinate);\n"
     "}\n";
 
 constexpr std::string_view axisVertexShaderSource =
@@ -67,6 +67,39 @@ constexpr std::string_view axisFragmentShaderSource =
     "{\n"
     "    out_color = in_color;\n"
     "}\n";
+
+//this loops over the vertices only (not any surface in between)
+constexpr std::string_view cubeVertexShaderSource =
+        "#version 450 core\n"
+        "layout (location = 0) in vec3 position;\n"
+        "layout (location = 1) in vec3 normal;\n"
+        "layout (location = 0) out vec4 world_pos;\n"
+        "layout (location = 1) out vec4 world_normal;\n"
+        "uniform mat4 rotTransMat;\n"
+        "uniform mat4 cameraMat;\n"
+        "\n"
+        "void main()\n"
+        "{\n"
+        "    world_pos = transpose(rotTransMat) * vec4(position.x * -0.1f,position.y * -0.1f, position.z * 0.1, 1.0f);\n"
+        "    world_normal = transpose(rotTransMat) * vec4(normal, 0); //normal is not affected by translations, so 0 \n"
+        "    gl_Position = transpose(cameraMat) * world_pos;\n"
+        "}\n";
+
+//this loops over the surfaces in between, after the transform tu unit projection space, so basically the pixels.
+constexpr std::string_view cubeFragmentShaderSource =
+    "#version 450 core\n"
+    "layout (location = 0) in vec4 position;\n"
+    "layout (location = 1) in vec4 normal;\n"
+    "layout (location = 0) out vec4 out_color;\n"
+    "uniform vec3 lightPos;\n"
+    "void main()\n"
+    "{\n"
+    "    vec4 dir = (lightPos, 1.0) - position;\n"
+    "    dir = dir / length(dir);\n"
+    "    float lightIntensity = clamp(dot(dir, normal), 0, 1);\n"
+    "    out_color = vec4(lightIntensity, lightIntensity, lightIntensity, 1.0f);\n"
+    "}\n";
+
 
 int main(int argc, char* argv[]) {
     // Select video source from command line argument 1 (an int)
@@ -123,6 +156,7 @@ int main(int argc, char* argv[]) {
 
     auto fullscreenQuad = IndexedMesh::createFullscreenQuad("fullscreen quad");
     auto axis = IndexedMesh::createAxis("axis");
+    auto cube = IndexedMesh::createCube("cube");
 
     // pipelines
     Pipeline::CreateInfo fullScreenPipelineInfo;
@@ -149,21 +183,38 @@ int main(int argc, char* argv[]) {
         return EXIT_FAILURE;
     }
 
+    Pipeline::CreateInfo cubePipelineInfo;
+    cubePipelineInfo.ViewportWidth = screenWidth;
+    cubePipelineInfo.ViewportHeight = screenHeight;
+    cubePipelineInfo.VertexShaderSource = cubeVertexShaderSource;
+    cubePipelineInfo.FragmentShaderSource = cubeFragmentShaderSource;
+    cubePipelineInfo.DebugName = "cube";
+    auto cubePipeline = Pipeline::create(cubePipelineInfo);
+    if (!cubePipeline) {
+        std::fprintf(stderr, "Failed to create cube pipeline\n");
+        return EXIT_FAILURE;
+    }
+
     RenderPass::CreateInfo passInfo;
+    passInfo.Clear = true;
     passInfo.ClearColor[0] = 0.0f;
     passInfo.ClearColor[1] = 0.0f;
     passInfo.ClearColor[2] = 0.0f;
     passInfo.ClearColor[3] = 1.0f;
+    passInfo.WriteDepth = false;
     passInfo.DebugName = "full screen quad";
     auto fullscreenPass = RenderPass::create(passInfo);
 
-    unsigned int texture;
-    glGenTextures(1, &texture);
-    glBindTexture(GL_TEXTURE_2D, texture);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    passInfo.Clear = false;
+    passInfo.WriteDepth = true;
+
+    auto objectPass = RenderPass::create(passInfo);
+
+    auto texture = Texture::create(screenWidth, screenHeight);
+    if (!texture) {
+        std::fprintf(stderr, "Failed to create camera texture\n");
+        return EXIT_FAILURE;
+    }
 
     cv::Mat frame;
 
@@ -184,6 +235,8 @@ int main(int argc, char* argv[]) {
         0, 1, 0, 0,
         0, 0, 1, 0,
         0, 0, 0, 1};
+
+    float3 lightPos = { 0.0f, 0.0f, 0.0f};
 
     //clang-format on
     bool firstFrame = true;
@@ -240,29 +293,39 @@ int main(int argc, char* argv[]) {
         calibration.DetectPattern(frame, calibrateFrame,
                                   true); // write calibration colors to image
 
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, screenWidth, screenHeight, 0,
-                     GL_RGB, GL_UNSIGNED_BYTE, frame.data);
+        texture->upload(frame);
 
         fullscreenPass->bind();
-        glBindTexture(GL_TEXTURE_2D, texture);
+        texture->bind();
         fullscreenPipeline->bind();
 
         // tell it you want to draw 2 triangles (2 vertices)
         fullscreenQuad->draw();
 
-        axisPipeline->bind();
+
+
 
         if (calibration.UpdateRotTransMat(screenSize, rotTransMat, !firstFrame)) {
+
+            objectPass->bind();
+            //axisPipeline->bind();
+
+            cubePipeline->bind();
+
             calibration.UpdateRotTransMat(screenSize, rotTransMat, false);
             firstFrame = false;
 
             axisPipeline->setUniform("rotTransMat", rotTransMat);
             axisPipeline->setUniform("cameraMat", calibration.CameraProjMat);
 
-            axis->draw();
+            cubePipeline->setUniform( "rotTransMat", rotTransMat);
+            cubePipeline->setUniform( "cameraMat", calibration.CameraProjMat);
+            cubePipeline->setUniform( "lightPos", lightPos);
+            //axis->draw();
+            cube->draw();
         }
 
-        ui->draw(renderer->getNativeWindowHandle(), calibration, screenWidth, screenHeight, rotTransMat);
+        ui->draw(renderer->getNativeWindowHandle(), calibration, screenWidth, screenHeight, rotTransMat, lightPos);
         renderer->swapBuffers();
     }
     return EXIT_SUCCESS;

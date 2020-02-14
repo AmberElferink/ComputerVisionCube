@@ -1,5 +1,4 @@
 #include "Ui.h"
-#include "Calibration.h"
 
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -7,6 +6,9 @@
 #include <examples/imgui_impl_opengl3.h>
 #include <ImGuiFileBrowser.h>
 #include <cstring>
+
+#include "Calibration.h"
+#include "Texture.h"
 
 void ImGuiDestroyer::operator()(ImGuiContext* context) const {
     ImGui::DestroyContext(context);
@@ -73,7 +75,8 @@ void Ui::processEvent(const SDL_Event& event) {
     ImGui_ImplSDL2_ProcessEvent(&event);
 }
 
-void Ui::draw(SDL_Window* window, Calibration& calibration, int cameraWidth, int cameraHeight, float* objectMatrix) {
+void Ui::draw(SDL_Window *window, Calibration &calibration, int cameraWidth, int cameraHeight, float *objectMatrix, float *lightPos)
+{
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplSDL2_NewFrame(window);
     ImGui::NewFrame();
@@ -108,6 +111,10 @@ void Ui::draw(SDL_Window* window, Calibration& calibration, int cameraWidth, int
                     for (uint32_t i = 0; i < numFiles; ++i)
                     {
                         if (ImGui::CollapsingHeader(calibration.CalibImageNames[i].c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
+                            if (calibration.CalibImages[i])
+                            {
+                                ImGui::Image(reinterpret_cast<ImTextureID>(calibration.CalibImages[i]->getNativeHandle()), ImVec2(256, 256 / calibration.CalibImages[i]->getAspect()));
+                            }
                             ImGui::InputScalarN(("rvec##rvec" + std::to_string(i)).c_str(), ImGuiDataType_Double, calibration.InitialRotationVectors.row(i).data, 3, nullptr, nullptr, "%.5f", ImGuiInputTextFlags_ReadOnly);
                             ImGui::InputScalarN(("tvec##tvec" + std::to_string(i)).c_str(), ImGuiDataType_Double, calibration.InitialTranslationVectors.row(i).data, 3, nullptr, nullptr, "%.5f", ImGuiInputTextFlags_ReadOnly);
                         }
@@ -124,6 +131,7 @@ void Ui::draw(SDL_Window* window, Calibration& calibration, int cameraWidth, int
                     ImGui::InputFloat4("##object_matrix_2", objectMatrix + 8);
                     ImGui::InputFloat4("##object_matrix_3", objectMatrix + 12);
                 }
+                ImGui::InputFloat3( "light_position", lightPos);
 
                 ImGui::EndTabItem();
             }

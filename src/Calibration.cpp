@@ -5,11 +5,16 @@
 #include <opencv2/calib3d.hpp>
 #include <opencv2/imgcodecs.hpp>
 
+#include "Texture.h"
+
 void fromCVPerspToGLProj(cv::Mat cvMat, mat4 &glMat) {
     double fx = cvMat.at<double>(0, 0);
     double fy = cvMat.at<double>(1, 1);
     double cx = cvMat.at<double>(0, 2);
     double cy = cvMat.at<double>(1, 2);
+
+    const float zfar = 200.f;
+    const float znear = 0.01f;
 
     // Infinite projection
     glMat[0] = -static_cast<float>(fx / cx);
@@ -24,8 +29,8 @@ void fromCVPerspToGLProj(cv::Mat cvMat, mat4 &glMat) {
 
     glMat[8] = 0.0f;
     glMat[9] = 0.0f;
-    glMat[10] = -1.0f;
-    glMat[11] = 0.0f;
+    glMat[10] = (zfar + znear) / (znear - zfar);
+    glMat[11] = 2.0f * zfar * znear / (znear - zfar);
 
     glMat[12] = 0.0f;
     glMat[13] = 0.0f;
@@ -61,22 +66,26 @@ void Calibration::LoadFromDirectory(const std::string &path)
     int calibFileCounter = 0;
     bool keepReading = true;
     while (keepReading) {
-        std::string calibFileName = path + "calib" + std::to_string(calibFileCounter) + ".png";
-        calibFileCounter++;
-        cv::Mat image = cv::imread(calibFileName);
+        std::string calibFileName = "calib" + std::to_string(calibFileCounter) + ".png";
+        cv::Mat image = cv::imread(path + calibFileName);
         keepReading = image.data;
         if (keepReading) {
             if (DetectPattern(image, true))
             {
                 std::cout << "Loaded " << calibFileName << std::endl;
-                CalibImageNames.push_back("calib" + std::to_string(calibFileCounter) + ".png");
-                CalibImages.push_back(image);
+                CalibImageNames.push_back(calibFileName);
+                auto texture = Texture::create(image.cols, image.rows);
+                if (texture) {
+                    texture->upload(image);
+                }
+                CalibImages.emplace_back(std::move(texture));
             }
             else
             {
                 std::cout << "No pattern found in " << calibFileName << std::endl;
             }
         }
+        calibFileCounter++;
     }
 }
 

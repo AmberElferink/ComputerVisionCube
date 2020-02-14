@@ -7,6 +7,7 @@
 
 // mat4 is equivalent to float[16]
 typedef float mat4[16];
+typedef float float3[3];
 
 class Pipeline {
   public:
