@@ -23,8 +23,7 @@ public:
   virtual ~Ui();
 
   void processEvent(const SDL_Event& event);
-  void draw(SDL_Window *window, Calibration &calibration, int cameraWidth, int cameraHeight, float *objectMatrix,
-            float *lightPos, bool& saveNextImage);
+  void draw(SDL_Window *window, Calibration &calibration, float *objectMatrix, float *lightPos, float &squareSideLengthM, bool &saveNextImage);
 
 private:
   explicit Ui(std::unique_ptr<ImGuiContext, ImGuiDestroyer>&& context);

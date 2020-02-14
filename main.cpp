@@ -16,7 +16,6 @@
 #include "RenderPass.h"
 #include "Renderer.h"
 
-constexpr float sideSquareM = 0.023;
 const cv::Size patternSize = cv::Size(6, 9);
 
 // just copy a glsl file in here with the vertex shader
@@ -55,7 +54,7 @@ constexpr std::string_view axisVertexShaderSource =
     "\n"
     "void main()\n"
     "{\n"
-    "    gl_Position = transpose(cameraMat) * transpose(rotTransMat) * vec4(position * 0.1f, 1.0);\n"
+    "    gl_Position = cameraMat * rotTransMat * vec4(position, 1.0);\n"
     "    out_color = vec4(color, 1.0);\n"
     "}\n";
 
@@ -80,9 +79,9 @@ constexpr std::string_view cubeVertexShaderSource =
         "\n"
         "void main()\n"
         "{\n"
-        "    world_pos = transpose(rotTransMat) * vec4(position.x * -0.1f,position.y * -0.1f, position.z * 0.1, 1.0f);\n"
-        "    world_normal = transpose(rotTransMat) * vec4(normal, 0); //normal is not affected by translations, so 0 \n"
-        "    gl_Position = transpose(cameraMat) * world_pos;\n"
+        "    world_pos = rotTransMat * vec4(position, 1.0f);\n"
+        "    world_normal = rotTransMat * vec4(normal, 0); //normal is not affected by translations, so 0 \n"
+        "    gl_Position = cameraMat * world_pos;\n"
         "}\n";
 
 //this loops over the surfaces in between, after the transform tu unit projection space, so basically the pixels.
@@ -179,6 +178,7 @@ int main(int argc, char* argv[]) {
     axisPipelineInfo.ViewportHeight = screenSize.height;
     axisPipelineInfo.VertexShaderSource = axisVertexShaderSource;
     axisPipelineInfo.FragmentShaderSource = axisFragmentShaderSource;
+    axisPipelineInfo.LineWidth = 2.0f;
     axisPipelineInfo.DebugName = "axis";
     auto axisPipeline = Pipeline::create(axisPipelineInfo);
     if (!axisPipeline) {
@@ -204,14 +204,20 @@ int main(int argc, char* argv[]) {
     passInfo.ClearColor[1] = 0.0f;
     passInfo.ClearColor[2] = 0.0f;
     passInfo.ClearColor[3] = 1.0f;
-    passInfo.WriteDepth = false;
+    passInfo.DepthWrite = false;
+    passInfo.DepthTest = false;
     passInfo.DebugName = "full screen quad";
     auto fullscreenPass = RenderPass::create(passInfo);
 
     passInfo.Clear = false;
-    passInfo.WriteDepth = true;
-
+    passInfo.DepthWrite = true;
+    passInfo.DepthTest = true;
     auto objectPass = RenderPass::create(passInfo);
+
+    passInfo.Clear = false;
+    passInfo.DepthWrite = false;
+    passInfo.DepthTest = false;
+    auto axisPass = RenderPass::create(passInfo);
 
     auto texture = Texture::create(screenSize.width, screenSize.height);
     if (!texture) {
@@ -225,7 +231,8 @@ int main(int argc, char* argv[]) {
     bool calibrateFrame = false;
     SDL_Event event;
 
-    Calibration calibration(patternSize, screenSize, sideSquareM);
+    float squareSideLengthM = 0.023;
+    Calibration calibration(patternSize, screenSize, squareSideLengthM);
 
     bool saveNextImage = false;
     std::string calibFileName;
@@ -289,7 +296,7 @@ int main(int argc, char* argv[]) {
         texture->upload(frame);
         cubePipeline->setUniform( "lightPos", lightPos);
         bool drawObjects = false;
-        if (calibration.UpdateRotTransMat(rotTransMat, !firstFrame)) {
+        if (calibration.UpdateRotTransMat(rotTransMat, squareSideLengthM, !firstFrame)) {
             axisPipeline->setUniform("rotTransMat", rotTransMat);
             axisPipeline->setUniform("cameraMat", calibration.CameraProjMat);
             cubePipeline->setUniform( "rotTransMat", rotTransMat);
@@ -297,23 +304,24 @@ int main(int argc, char* argv[]) {
             drawObjects = true;
         }
 
-        fullscreenPass->bind();
-        texture->bind();
-        fullscreenPipeline->bind();
-
         // tell it you want to draw 2 triangles (2 vertices)
+        fullscreenPass->bind();
+        fullscreenPipeline->bind();
+        texture->bind();
         fullscreenQuad->draw();
 
         if (drawObjects) {
             objectPass->bind();
-            //axisPipeline->bind();
             cubePipeline->bind();
-            firstFrame = false;
-            //axis->draw();
             cube->draw();
+
+            axisPass->bind();
+            axisPipeline->bind();
+            axis->draw();
+            firstFrame = false;
         }
 
-        ui->draw(renderer->getNativeWindowHandle(), calibration, screenSize.width, screenSize.height, rotTransMat, lightPos, saveNextImage);
+        ui->draw(renderer->getNativeWindowHandle(), calibration, rotTransMat, lightPos, squareSideLengthM, saveNextImage);
         renderer->swapBuffers();
     }
     return EXIT_SUCCESS;

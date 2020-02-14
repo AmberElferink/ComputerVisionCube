@@ -74,7 +74,7 @@ void Ui::processEvent(const SDL_Event& event) {
     ImGui_ImplSDL2_ProcessEvent(&event);
 }
 
-void Ui::draw(SDL_Window *window, Calibration &calibration, int cameraWidth, int cameraHeight, float *objectMatrix, float *lightPos, bool& saveNextImage)
+void Ui::draw(SDL_Window *window, Calibration &calibration, float *objectMatrix, float *lightPos, float &squareSideLengthM, bool &saveNextImage)
 {
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplSDL2_NewFrame(window);
@@ -132,14 +132,14 @@ void Ui::draw(SDL_Window *window, Calibration &calibration, int cameraWidth, int
                 ImGui::EndTabItem();
             }
             if (ImGui::BeginTabItem("Online")) {
-
+                ImGui::InputFloat( "Square Side Length (M)", &squareSideLengthM);
                 if (ImGui::CollapsingHeader("Object Matrix", ImGuiTreeNodeFlags_DefaultOpen)) {
                     ImGui::InputFloat4("##object_matrix_0", objectMatrix + 0);
                     ImGui::InputFloat4("##object_matrix_1", objectMatrix + 4);
                     ImGui::InputFloat4("##object_matrix_2", objectMatrix + 8);
                     ImGui::InputFloat4("##object_matrix_3", objectMatrix + 12);
                 }
-                ImGui::InputFloat3( "light_position", lightPos);
+                ImGui::InputFloat3( "Light Position", lightPos);
 
                 ImGui::EndTabItem();
             }

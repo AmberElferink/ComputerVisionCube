@@ -76,19 +76,22 @@ std::unique_ptr<Pipeline> Pipeline::create(const Pipeline::CreateInfo& info) {
     }
 
     return std::unique_ptr<Pipeline>(
-        new Pipeline(program, info.ViewportWidth, info.ViewportHeight));
+        new Pipeline(program, info.ViewportWidth, info.ViewportHeight, info.LineWidth));
 }
 
-Pipeline::Pipeline(uint32_t program, uint32_t viewportWidth,
-                   uint32_t viewportHeight)
-    : program_(program), viewportWidth_(viewportWidth),
-      viewportHeight_(viewportHeight) {}
+Pipeline::Pipeline(uint32_t program, uint32_t viewportWidth, uint32_t viewportHeight, float lineWidth)
+    : program_(program)
+    , viewportWidth_(viewportWidth)
+    , viewportHeight_(viewportHeight)
+    , lineWidth_(lineWidth)
+{}
 
 Pipeline::~Pipeline() { glDeleteProgram(program_); }
 
 void Pipeline::bind() {
     glViewport(0, 0, viewportWidth_, viewportHeight_);
     glUseProgram(program_);
+    glLineWidth(lineWidth_);
 }
 
 template <>

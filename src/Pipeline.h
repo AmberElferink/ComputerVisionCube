@@ -16,6 +16,7 @@ class Pipeline {
         uint32_t ViewportHeight;
         std::string_view VertexShaderSource;
         std::string_view FragmentShaderSource;
+        float LineWidth;
         std::string_view DebugName;
     };
 
@@ -29,10 +30,10 @@ class Pipeline {
     static std::unique_ptr<Pipeline> create(const CreateInfo& info);
 
   private:
-    explicit Pipeline(uint32_t program, uint32_t viewportWidth,
-                      uint32_t viewportHeight);
+    explicit Pipeline(uint32_t program, uint32_t viewportWidth, uint32_t viewportHeight, float lineWidth);
 
     const uint32_t program_;
-    uint32_t viewportWidth_;
-    uint32_t viewportHeight_;
+    const uint32_t viewportWidth_;
+    const uint32_t viewportHeight_;
+    const float lineWidth_;
 };

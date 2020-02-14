@@ -52,7 +52,7 @@ public:
     void TakeCapture(const std::string& path, const cv::Mat& frame);
     bool DetectPattern(cv::Mat frame, bool addImage, bool drawCalibrationColors = true);
     /// update the rotation mat. Returns true if correctly updated.
-    bool UpdateRotTransMat(mat4& rotTransMat, bool usePrevFrame);
+    bool UpdateRotTransMat(mat4 &objectMatrix, float scaling_factor, bool usePrevFrame);
     /// get the camera matrix via opencv and copy it to a float16 mat4.
     /// automatically also updates rotation and translation vectors
     void CalcCameraMat();

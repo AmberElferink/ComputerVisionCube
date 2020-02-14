@@ -30,11 +30,11 @@ void fromCVPerspToGLProj(cv::Mat cvMat, mat4 &glMat) {
     glMat[8] = 0.0f;
     glMat[9] = 0.0f;
     glMat[10] = (zfar + znear) / (znear - zfar);
-    glMat[11] = 2.0f * zfar * znear / (znear - zfar);
+    glMat[11] = -1.0f;
 
     glMat[12] = 0.0f;
     glMat[13] = 0.0f;
-    glMat[14] = -1.0f;
+    glMat[14] = 2.0f * zfar * znear / (znear - zfar);
     glMat[15] = 0.0f;
 }
 
@@ -120,7 +120,7 @@ bool Calibration::DetectPattern(cv::Mat frame, bool addImage, bool drawCalibrati
     return chessBoardDetected;
 }
 
-bool Calibration::UpdateRotTransMat(mat4 &rotTransMat, bool usePrevFrame)
+bool Calibration::UpdateRotTransMat(mat4 &objectMatrix, float scaling_factor, bool usePrevFrame)
 {
     if (CameraMatKnown) {
         if (!imageSpacePoints_.empty())
@@ -132,15 +132,17 @@ bool Calibration::UpdateRotTransMat(mat4 &rotTransMat, bool usePrevFrame)
                 return false;
             }
 
-            cv::Mat rotMat = cv::Mat::eye(3, 3, rotationVec_.type());
-            cv::Rodrigues(rotationVec_, rotMat);
-            cv::Mat T = cv::Mat::eye(4, 4, rotMat.type()); // T is 4x4
-            T( cv::Range(0,3), cv::Range(0,3) ) = rotMat * 1; // copies R into T
-            T( cv::Range(0,3), cv::Range(3,4) ) = translationVec_ * -1; // copies tvec into T
+            cv::Mat rotation = cv::Mat::eye(3, 3, rotationVec_.type());
+            cv::Rodrigues(rotationVec_, rotation);
+            cv::Mat finalMatrix = cv::Mat::eye(4, 4, rotation.type());
+            finalMatrix(cv::Range(0, 3), cv::Range(0, 3) ) = rotation * scaling_factor;
+            finalMatrix(cv::Range(0, 3), cv::Range(3, 4) ) = translationVec_ * -1;
+
+            finalMatrix = finalMatrix.t();
 
             for (int i = 0; i < 16; ++i)
             {
-                rotTransMat[i] = T.at<double>(i);
+                objectMatrix[i] = finalMatrix.at<double>(i);
             }
             return true;
         }
