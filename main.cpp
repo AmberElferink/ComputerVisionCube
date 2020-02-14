@@ -94,10 +94,15 @@ constexpr std::string_view cubeFragmentShaderSource =
     "uniform vec3 lightPos;\n"
     "void main()\n"
     "{\n"
-    "    vec4 dir = (lightPos, 1.0) - position;\n"
-    "    dir = dir / length(dir);\n"
-    "    float lightIntensity = clamp(dot(dir, normal), 0, 1);\n"
-    "    out_color = vec4(lightIntensity, lightIntensity, lightIntensity, 1.0f);\n"
+    "    vec4 dir = vec4(lightPos, 1.0) - position;\n"
+    "    vec3 viewDir = -normalize(position.xyz);\n"
+    "    float dist2 = dot(dir, dir);\n"
+    "    dir = normalize(dir);\n"
+    "    vec3 reflectDir = reflect(-dir.xyz, normal.xyz);\n"
+    "    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 128);\n"
+    "    float lightIntensity = (clamp(dot(dir.xyz, normal.xyz), 0, 0.1) * 0.5 + spec * 0.25) / dist2  + 0.3;\n"
+    "    out_color.rgb = lightIntensity * vec3(0.349f, 0.65f, 0.67f);\n"
+    "    out_color.a = 1.0f;\n"
     "}\n";
 
 
@@ -294,6 +299,15 @@ int main(int argc, char* argv[]) {
                                   true); // write calibration colors to image
 
         texture->upload(frame);
+        cubePipeline->setUniform( "lightPos", lightPos);
+        bool drawObjects = false;
+        if (calibration.UpdateRotTransMat(screenSize, rotTransMat, !firstFrame)) {
+            axisPipeline->setUniform("rotTransMat", rotTransMat);
+            axisPipeline->setUniform("cameraMat", calibration.CameraProjMat);
+            cubePipeline->setUniform( "rotTransMat", rotTransMat);
+            cubePipeline->setUniform( "cameraMat", calibration.CameraProjMat);
+            drawObjects = true;
+        }
 
         fullscreenPass->bind();
         texture->bind();
@@ -302,25 +316,11 @@ int main(int argc, char* argv[]) {
         // tell it you want to draw 2 triangles (2 vertices)
         fullscreenQuad->draw();
 
-
-
-
-        if (calibration.UpdateRotTransMat(screenSize, rotTransMat, !firstFrame)) {
-
+        if (drawObjects) {
             objectPass->bind();
             //axisPipeline->bind();
-
             cubePipeline->bind();
-
-            calibration.UpdateRotTransMat(screenSize, rotTransMat, false);
             firstFrame = false;
-
-            axisPipeline->setUniform("rotTransMat", rotTransMat);
-            axisPipeline->setUniform("cameraMat", calibration.CameraProjMat);
-
-            cubePipeline->setUniform( "rotTransMat", rotTransMat);
-            cubePipeline->setUniform( "cameraMat", calibration.CameraProjMat);
-            cubePipeline->setUniform( "lightPos", lightPos);
             //axis->draw();
             cube->draw();
         }
