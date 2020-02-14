@@ -75,7 +75,8 @@ void Ui::processEvent(const SDL_Event& event) {
     ImGui_ImplSDL2_ProcessEvent(&event);
 }
 
-void Ui::draw(SDL_Window* window, Calibration& calibration, int cameraWidth, int cameraHeight, float* objectMatrix) {
+void Ui::draw(SDL_Window *window, Calibration &calibration, int cameraWidth, int cameraHeight, float *objectMatrix, float *lightPos)
+{
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplSDL2_NewFrame(window);
     ImGui::NewFrame();
@@ -130,6 +131,7 @@ void Ui::draw(SDL_Window* window, Calibration& calibration, int cameraWidth, int
                     ImGui::InputFloat4("##object_matrix_2", objectMatrix + 8);
                     ImGui::InputFloat4("##object_matrix_3", objectMatrix + 12);
                 }
+                ImGui::InputFloat3( "light_position", lightPos);
 
                 ImGui::EndTabItem();
             }

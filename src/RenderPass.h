@@ -6,7 +6,9 @@
 class RenderPass {
   public:
     struct CreateInfo {
+        bool Clear;
         float ClearColor[4];
+        bool WriteDepth;
         std::string_view DebugName;
     };
 
@@ -18,7 +20,10 @@ class RenderPass {
     static std::unique_ptr<RenderPass> create(const CreateInfo& info);
 
   private:
-    explicit RenderPass(const float clearColor[4]);
+    RenderPass(bool clear, const float clearColor[4], bool writeDepth);
 
+    const bool clear_;
     const float clearColor_[4];
+    const bool writeDepth_;
+
 };
