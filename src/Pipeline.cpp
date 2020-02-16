@@ -119,3 +119,16 @@ bool Pipeline::setUniform(const std::string_view& uniform_name, const float3& un
 
     return true;
 }
+
+template <>
+bool Pipeline::setUniform(const std::string_view& uniform_name, const float& uniform)
+{
+    auto index = glGetUniformLocation(program_, uniform_name.data());
+    if (index == GL_INVALID_INDEX) {
+        std::fprintf(stderr, "Could not bind uniform %s: name not present\n", uniform_name.data());
+        return false;
+    }
+    glProgramUniform1f(program_, index, uniform);
+
+    return true;
+}

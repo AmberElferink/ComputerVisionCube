@@ -76,10 +76,12 @@ constexpr std::string_view cubeVertexShaderSource =
         "layout (location = 1) out vec3 world_normal;\n"
         "uniform mat4 rotTransMat;\n"
         "uniform mat4 cameraMat;\n"
+        "uniform float scaleFactor;\n"
         "\n"
         "void main()\n"
         "{\n"
         "    vec4 mod_position = vec4(-position.xy, position.z, 1.0f); //flip position xy so the cube points toward the center of the checkboard\n"
+        "    mod_position.xyz = mod_position.xyz * scaleFactor;\n"
         "    world_pos = rotTransMat * mod_position;\n"
         "    world_normal = normalize(rotTransMat * vec4(-normal.xy, normal.z, 0)).xyz; //normal is not affected by translations, so 0,  //since position xy are flipped, normals should be too \n"
         "    gl_Position = cameraMat * world_pos;\n"
@@ -302,6 +304,7 @@ int main(int argc, char* argv[]) {
             axisPipeline->setUniform("cameraMat", calibration.CameraProjMat);
             cubePipeline->setUniform( "rotTransMat", rotTransMat);
             cubePipeline->setUniform( "cameraMat", calibration.CameraProjMat);
+            cubePipeline->setUniform( "scaleFactor", 2.0f);
             drawObjects = true;
         }
 
