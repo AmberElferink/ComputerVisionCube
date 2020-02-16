@@ -79,8 +79,9 @@ constexpr std::string_view cubeVertexShaderSource =
         "\n"
         "void main()\n"
         "{\n"
-        "    world_pos = rotTransMat * vec4(position, 1.0f);\n"
-        "    world_normal = normalize(rotTransMat * vec4(normal, 0)).xyz; //normal is not affected by translations, so 0 \n"
+        "    vec4 mod_position = vec4(-position.xy, position.z, 1.0f); //flip position xy so the cube points toward the center of the checkboard\n"
+        "    world_pos = rotTransMat * mod_position;\n"
+        "    world_normal = normalize(rotTransMat * vec4(-normal.xy, normal.z, 0)).xyz; //normal is not affected by translations, so 0,  //since position xy are flipped, normals should be too \n"
         "    gl_Position = cameraMat * world_pos;\n"
         "}\n";
 
