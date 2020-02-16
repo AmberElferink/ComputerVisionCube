@@ -15,7 +15,7 @@ class Calibration {
   public:
     bool CameraMatKnown;
     cv::Mat CameraMatrix; // empty until calibration is complete
-    mat4 CameraProjMat;
+    mat4 ProjMat;
 
   /// list of all vec3s, one for each calibrated image. Not updated after that.
   cv::Mat InitialTranslationVectors;
