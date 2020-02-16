@@ -48,8 +48,11 @@ class Calibration {
 public:
     /// calibration with chessboard pattern. PatternWidth and height are the inner corners (squares - 1)
     Calibration(const cv::Size& patternSize, const cv::Size& cameraResolution, float sideSquare);
+    /// Load Calibration Images from selected directory and reject those which don't detect the board
     void LoadFromDirectory(const std::string& path);
+    /// Same the current frame in the the selected directory
     void TakeCapture(const std::string& path, const cv::Mat& frame);
+    /// Find corners of the chessboard and if so, optionally draw them. Returns if the pattern was detected
     bool DetectPattern(cv::Mat frame, bool addImage, bool drawCalibrationColors = true);
     /// update the rotation mat. Returns true if correctly updated.
     bool UpdateRotTransMat(mat4 &objectMatrix, float scaling_factor, bool usePrevFrame);

@@ -6,6 +6,7 @@
 #include <vector>
 #include <string_view>
 
+/// Wrapper for OpenGL Vertex Array Buffers
 class IndexedMesh {
   public:
     enum Topology
@@ -45,25 +46,39 @@ class IndexedMesh {
     const uint16_t element_count;
     const Topology topology;
 
-    /// Only accepts uint16_t indices
+    /// General factory function only accepts uint16_t indices
     static std::unique_ptr<IndexedMesh> create(const CreateInfo& info);
+    /// Factory function for generating a full screen quad with positions
+    /// encoded in the screen space coordinates
     static std::unique_ptr<IndexedMesh>
     createFullscreenQuad(const std::string_view& debug_name);
+    /// Factory function for creating a tri-color unit axis centered at 0
+    /// with each arm extending at 1 in every axis.
     static std::unique_ptr<IndexedMesh>
     createAxis(const std::string_view& debug_name);
+    /// Factory function for creating a 1 unit cube with one vertex at the origin,
+    /// every vertex with positive values in each axis and side length of 1.
     static std::unique_ptr<IndexedMesh>
     createCube(const std::string_view& debug_name);
 
     virtual ~IndexedMesh();
+    /// Draw the indexed mesh using opengl
     void draw() const;
+    /// Bind the buffers for drawing
     void bind() const;
 
+    /// Map vertex staging memory for copy before upload to driver and then GPU.
+    /// Once pointer goes out of scope, the memory is offloaded to the driver.
     std::unique_ptr<uint8_t, MemoryUnmapper>
     mapVertexBuffer(MemoryMapAccess access);
+    /// Map index staging memory for copy before upload to driver and then GPU.
+    /// Once pointer goes out of scope, the memory is offloaded to the driver.
     std::unique_ptr<uint8_t, MemoryUnmapper>
     mapIndexBuffer(MemoryMapAccess access);
 
   private:
+    /// Private unique constructor forcing the use of factory function which
+    /// can return null unlike constructor.
     IndexedMesh(uint32_t vertex_buffer, uint32_t index_buffer, uint32_t vao,
                 uint16_t element_count, Topology topology);
 };

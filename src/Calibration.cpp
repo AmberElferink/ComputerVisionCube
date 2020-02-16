@@ -7,6 +7,11 @@
 
 #include "Texture.h"
 
+/// Transform an OpenCV Perspective matrix into a OpenGL space
+/// Projection matrix which is friendly to vertex shader transforms to
+/// OpenGL normalized device coordinates (NDC) space and clip space for culling.
+/// This removes the infinite far plane of OpenCV but points at infinity are
+/// Mapped to behind the camera.
 void fromCVPerspToGLProj(cv::Mat cvMat, mat4 &glMat) {
     double fx = cvMat.at<double>(0, 0);
     double fy = cvMat.at<double>(1, 1);

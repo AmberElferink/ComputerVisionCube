@@ -9,6 +9,9 @@
 typedef float mat4[16];
 typedef float float3[3];
 
+/// Represents a GPU pipeline with all attribute which would cause recompilation
+/// inside the driver. Using a pipeline object for each collection of state
+/// reduces recompilation in the drivers due to these state changes.
 class Pipeline {
   public:
     struct CreateInfo {
@@ -22,7 +25,9 @@ class Pipeline {
 
     virtual ~Pipeline();
 
+    /// Bind pipeline with which to draw
     void bind();
+    /// Upload a uniform: data which is shared with all shader cores during dispatch.
     template <typename T>
     bool setUniform(const std::string_view& uniform_name, const T& uniform);
 
@@ -30,6 +35,8 @@ class Pipeline {
     static std::unique_ptr<Pipeline> create(const CreateInfo& info);
 
   private:
+    /// Private unique constructor forcing the use of factory function which
+    /// can return null unlike constructor.
     explicit Pipeline(uint32_t program, uint32_t viewportWidth, uint32_t viewportHeight, float lineWidth);
 
     const uint32_t program_;
