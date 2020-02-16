@@ -105,10 +105,10 @@ void Ui::draw(SDL_Window *window, Calibration &calibration, float *objectMatrix,
                 }
 
                 if (ImGui::CollapsingHeader("Projection Matrix")) {
-                    ImGui::InputFloat4("##projection_matrix_0", calibration.CameraProjMat + 0);
-                    ImGui::InputFloat4("##projection_matrix_1", calibration.CameraProjMat + 4);
-                    ImGui::InputFloat4("##projection_matrix_2", calibration.CameraProjMat + 8);
-                    ImGui::InputFloat4("##projection_matrix_3", calibration.CameraProjMat + 12);
+                    ImGui::InputFloat4("##projection_matrix_0", calibration.ProjMat + 0);
+                    ImGui::InputFloat4("##projection_matrix_1", calibration.ProjMat + 4);
+                    ImGui::InputFloat4("##projection_matrix_2", calibration.ProjMat + 8);
+                    ImGui::InputFloat4("##projection_matrix_3", calibration.ProjMat + 12);
                 }
 
                 if (ImGui::CollapsingHeader("Distortion Coefficients")) {
