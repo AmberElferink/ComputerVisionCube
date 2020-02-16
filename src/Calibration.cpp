@@ -42,7 +42,7 @@ Calibration::Calibration(const cv::Size& patternSize, const cv::Size& cameraReso
     : CameraMatKnown(false)
     , CameraMatrix(cv::Mat::eye(3, 3, CV_64F))
     // Identity matrix
-    , CameraProjMat{1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f}
+    , ProjMat{1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f}
     , patternSize_(patternSize)
     , cameraResolution_(cameraResolution)
     , objectSpacePoints_(patternSize.width * patternSize.height)
@@ -160,6 +160,6 @@ void Calibration::CalcCameraMat()
         return;
     }
     cv::calibrateCamera(initialObjectSpacetPoints_, initialImageSpacePoints_, cameraResolution_, CameraMatrix, DistortionCoefficients, InitialRotationVectors, InitialTranslationVectors);
-    fromCVPerspToGLProj(CameraMatrix, CameraProjMat);
+    fromCVPerspToGLProj(CameraMatrix, ProjMat);
     CameraMatKnown = true;
 }

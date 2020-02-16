@@ -51,10 +51,11 @@ constexpr std::string_view axisVertexShaderSource =
     "layout (location = 0) out vec4 out_color;\n"
     "uniform mat4 rotTransMat;\n"
     "uniform mat4 cameraMat;\n"
+    "uniform float scaleFactor;\n"
     "\n"
     "void main()\n"
     "{\n"
-    "    gl_Position = cameraMat * rotTransMat * vec4(position, 1.0);\n"
+    "    gl_Position = cameraMat * rotTransMat * vec4(-position.xy * scaleFactor, position.z * scaleFactor, 1.0);\n"
     "    out_color = vec4(color, 1.0);\n"
     "}\n";
 
@@ -101,8 +102,8 @@ constexpr std::string_view cubeFragmentShaderSource =
     "    float dist2 = dot(dir, dir);\n"
     "    dir = normalize(dir);\n"
     "    vec3 reflectDir = reflect(-dir.xyz, normal);\n"
-    "    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);\n"
-    "    float lightIntensity = (clamp(dot(dir.xyz, normal), 0.0, 0.5) * 0.1 + spec * 0.25) / dist2 + 0.2;\n"
+    "    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 128);\n"
+    "    float lightIntensity = (clamp(dot(dir.xyz, normal), 0.0, 0.5) * 0.2 + spec * 0.25) / dist2 + 0.2;\n"
     "    out_color.rgb = lightIntensity * vec3(0.349f, 0.65f, 0.67f);\n"
     "    out_color.a = 1.0f;\n"
     "}\n";
@@ -218,8 +219,8 @@ int main(int argc, char* argv[]) {
     auto objectPass = RenderPass::create(passInfo);
 
     passInfo.Clear = false;
-    passInfo.DepthWrite = false;
-    passInfo.DepthTest = false;
+    passInfo.DepthWrite = true; //turn on or off that the axes draw over the cube
+    passInfo.DepthTest = true; //turn on or off that the axes draw over the cube
     auto axisPass = RenderPass::create(passInfo);
 
     auto texture = Texture::create(screenSize.width, screenSize.height);
@@ -294,16 +295,17 @@ int main(int argc, char* argv[]) {
         }
 
         calibration.DetectPattern(frame, calibrateFrame,
-                                  true); // write calibration colors to image
+                                  false); // write calibration colors to image
 
         texture->upload(frame);
         cubePipeline->setUniform( "lightPos", lightPos);
         bool drawObjects = false;
         if (calibration.UpdateRotTransMat(rotTransMat, squareSideLengthM, !firstFrame)) {
             axisPipeline->setUniform("rotTransMat", rotTransMat);
-            axisPipeline->setUniform("cameraMat", calibration.CameraProjMat);
+            axisPipeline->setUniform("cameraMat", calibration.ProjMat);
+            axisPipeline->setUniform( "scaleFactor", 5.0f);
             cubePipeline->setUniform( "rotTransMat", rotTransMat);
-            cubePipeline->setUniform( "cameraMat", calibration.CameraProjMat);
+            cubePipeline->setUniform( "cameraMat", calibration.ProjMat);
             cubePipeline->setUniform( "scaleFactor", 2.0f);
             drawObjects = true;
         }
