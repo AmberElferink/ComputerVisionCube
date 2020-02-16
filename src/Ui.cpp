@@ -98,11 +98,17 @@ void Ui::draw(SDL_Window *window, Calibration &calibration, float *objectMatrix,
                     }
                 }
 
-                if (ImGui::CollapsingHeader("Camera Matrix")) {
-                    ImGui::InputFloat4("##camera_matrix_0", calibration.CameraProjMat + 0);
-                    ImGui::InputFloat4("##camera_matrix_1", calibration.CameraProjMat + 4);
-                    ImGui::InputFloat4("##camera_matrix_2", calibration.CameraProjMat + 8);
-                    ImGui::InputFloat4("##camera_matrix_3", calibration.CameraProjMat + 12);
+                if (ImGui::CollapsingHeader("Intrinsic Matrix")) {
+                    ImGui::InputScalarN("##intrinsic_matrix_0", ImGuiDataType_Double, calibration.CameraMatrix.data + 0 * sizeof(double), 3, nullptr, nullptr, "%0.3f");
+                    ImGui::InputScalarN("##intrinsic_matrix_1", ImGuiDataType_Double, calibration.CameraMatrix.data + 3 * sizeof(double), 3, nullptr, nullptr, "%0.3f");
+                    ImGui::InputScalarN("##intrinsic_matrix_2", ImGuiDataType_Double, calibration.CameraMatrix.data + 6 * sizeof(double), 3, nullptr, nullptr, "%0.3f");
+                }
+
+                if (ImGui::CollapsingHeader("Projection Matrix")) {
+                    ImGui::InputFloat4("##projection_matrix_0", calibration.CameraProjMat + 0);
+                    ImGui::InputFloat4("##projection_matrix_1", calibration.CameraProjMat + 4);
+                    ImGui::InputFloat4("##projection_matrix_2", calibration.CameraProjMat + 8);
+                    ImGui::InputFloat4("##projection_matrix_3", calibration.CameraProjMat + 12);
                 }
 
                 if (ImGui::CollapsingHeader("Distortion Coefficients")) {
