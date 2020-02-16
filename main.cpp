@@ -73,14 +73,14 @@ constexpr std::string_view cubeVertexShaderSource =
         "layout (location = 0) in vec3 position;\n"
         "layout (location = 1) in vec3 normal;\n"
         "layout (location = 0) out vec4 world_pos;\n"
-        "layout (location = 1) out vec4 world_normal;\n"
+        "layout (location = 1) out vec3 world_normal;\n"
         "uniform mat4 rotTransMat;\n"
         "uniform mat4 cameraMat;\n"
         "\n"
         "void main()\n"
         "{\n"
         "    world_pos = rotTransMat * vec4(position, 1.0f);\n"
-        "    world_normal = rotTransMat * vec4(normal, 0); //normal is not affected by translations, so 0 \n"
+        "    world_normal = normalize(rotTransMat * vec4(normal, 0)).xyz; //normal is not affected by translations, so 0 \n"
         "    gl_Position = cameraMat * world_pos;\n"
         "}\n";
 
@@ -88,7 +88,7 @@ constexpr std::string_view cubeVertexShaderSource =
 constexpr std::string_view cubeFragmentShaderSource =
     "#version 450 core\n"
     "layout (location = 0) in vec4 position;\n"
-    "layout (location = 1) in vec4 normal;\n"
+    "layout (location = 1) in vec3 normal;\n"
     "layout (location = 0) out vec4 out_color;\n"
     "uniform vec3 lightPos;\n"
     "void main()\n"
@@ -97,9 +97,9 @@ constexpr std::string_view cubeFragmentShaderSource =
     "    vec3 viewDir = -normalize(position.xyz);\n"
     "    float dist2 = dot(dir, dir);\n"
     "    dir = normalize(dir);\n"
-    "    vec3 reflectDir = reflect(-dir.xyz, normal.xyz);\n"
-    "    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 128);\n"
-    "    float lightIntensity = (clamp(dot(dir.xyz, normal.xyz), 0.0, 0.1) * 0.5 + spec * 0.25) / dist2  + 0.3;\n"
+    "    vec3 reflectDir = reflect(-dir.xyz, normal);\n"
+    "    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);\n"
+    "    float lightIntensity = (clamp(dot(dir.xyz, normal), 0.0, 0.5) * 0.5 + spec * 0.25) / dist2 + 0.2;\n"
     "    out_color.rgb = lightIntensity * vec3(0.349f, 0.65f, 0.67f);\n"
     "    out_color.a = 1.0f;\n"
     "}\n";

@@ -134,8 +134,9 @@ bool Calibration::UpdateRotTransMat(mat4 &objectMatrix, float scaling_factor, bo
 
             cv::Mat rotation = cv::Mat::eye(3, 3, rotationVec_.type());
             cv::Rodrigues(rotationVec_, rotation);
-            cv::Mat finalMatrix = cv::Mat::eye(4, 4, rotation.type());
-            finalMatrix(cv::Range(0, 3), cv::Range(0, 3) ) = rotation * scaling_factor;
+            cv::Mat finalMatrix = scaling_factor * cv::Mat::eye(4, 4, rotation.type());
+            finalMatrix.at<double>(3, 3) = 1.0;
+            finalMatrix(cv::Range(0, 3), cv::Range(0, 3) ) *= rotation;
             finalMatrix(cv::Range(0, 3), cv::Range(3, 4) ) = translationVec_ * -1;
 
             finalMatrix = finalMatrix.t();
