@@ -99,7 +99,7 @@ constexpr std::string_view cubeFragmentShaderSource =
     "    dir = normalize(dir);\n"
     "    vec3 reflectDir = reflect(-dir.xyz, normal);\n"
     "    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);\n"
-    "    float lightIntensity = (clamp(dot(dir.xyz, normal), 0.0, 0.5) * 0.5 + spec * 0.25) / dist2 + 0.2;\n"
+    "    float lightIntensity = (clamp(dot(dir.xyz, normal), 0.0, 0.5) * 0.1 + spec * 0.25) / dist2 + 0.2;\n"
     "    out_color.rgb = lightIntensity * vec3(0.349f, 0.65f, 0.67f);\n"
     "    out_color.a = 1.0f;\n"
     "}\n";
